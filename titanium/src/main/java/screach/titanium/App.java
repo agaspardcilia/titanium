@@ -10,7 +10,7 @@ import screach.titanium.gui.MainPane;
 import utils.ServerListLoader;;
 
 public class App extends Application {
-	public final static int WIDTH_DFT = 750;
+	public final static int WIDTH_DFT = 885;
 	public final static int HEIGTH_DFT = 820;
 	public final static String APP_NAME = "Titanium";
 	public final static String VERSION = "0.2";
@@ -31,11 +31,13 @@ public class App extends Application {
 		primaryStage.setTitle(APP_NAME + " - " + VERSION);
 		primaryStage.setWidth(WIDTH_DFT);
 		primaryStage.setHeight(HEIGTH_DFT);
-		pane = new MainPane(primaryStage);
+		pane = new MainPane(primaryStage, this);
 		Scene s = new Scene(pane);
 		primaryStage.setScene(s);
 		
+		
 		refreshTabs();
+		
 		
 		primaryStage.show();
 	}

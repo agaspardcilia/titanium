@@ -2,11 +2,15 @@ package screach.titanium.gui.servertab;
 
 import java.util.Optional;
 
+import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.util.Pair;
 import screach.titanium.core.Player;
@@ -20,13 +24,27 @@ public class PlayerView {
 	
 	private Button kickButton;
 	private Button banButton;
-	private HBox buttonPane;
+	private HBox actionPane;
+
+	private Label steamIDLabel;
+	private Button copyButton;
+	private Button steamProfileButton;
+	private HBox steamPan;
 	
+	private Application app;
 	
-	
-	public PlayerView(Player player, Server server) {
+	public PlayerView(Player player, Server server, Application app) {
 		this.player = player;
 		this.server = server;
+		this.app = app;
+		
+		ImageView copyImage = new ImageView(AssetsLoader.getAsset("copy.png"));
+		copyImage.setFitWidth(16);
+		copyImage.setFitHeight(16);
+		
+		ImageView steamImage = new ImageView(AssetsLoader.getAsset("steam.png"));
+		steamImage.setFitWidth(16);
+		steamImage.setFitHeight(16);
 		
 		ImageView banImage = new ImageView(AssetsLoader.getAsset("ban.png"));
 		banImage.setFitWidth(16);
@@ -42,9 +60,23 @@ public class PlayerView {
 		kickButton.setTooltip(new Tooltip("Kick this player"));
 		banButton.setTooltip(new Tooltip("Ban this player"));
 		
-		buttonPane = new HBox(kickButton, banButton);
-		kickButton.setOnAction(this::kickPlayer);
-		banButton.setOnAction(this::banPlayer);
+		actionPane = new HBox(kickButton, banButton);
+		kickButton.setOnAction(this::kickPlayerAction);
+		banButton.setOnAction(this::banPlayerAction);
+
+	
+		steamIDLabel = new Label(player.getSteamId());
+		copyButton = new Button("", copyImage);
+		steamProfileButton = new Button("", steamImage);
+		
+		copyButton.setOnAction(this::copySteamIDToClipboardAction);
+		steamProfileButton.setOnAction(this::steamProfileAction);
+		
+		copyButton.setTooltip(new Tooltip("Copy steamID to clipboard"));
+	
+		steamPan = new HBox(steamIDLabel, copyButton, steamProfileButton);
+		
+		
 	}
 	
 	public String getName() {
@@ -59,6 +91,10 @@ public class PlayerView {
 		return player.getSteamId();
 	}
 	
+	public HBox getSteamPan() {
+		return steamPan;
+	}
+	
 	public Button getKickButton() {
 		return kickButton;
 	}
@@ -67,15 +103,15 @@ public class PlayerView {
 		return banButton;
 	}
 	
-	public HBox getButtonPan() {
-		return buttonPane;
+	public HBox getActionPan() {
+		return actionPane;
 	}
 	
 	public Server getServer() {
 		return server;
 	}
 	
-	public void kickPlayer(ActionEvent e) {
+	private void kickPlayerAction(ActionEvent e) {
 		TextInputDialog dial = new TextInputDialog("No reason indicated");
 		dial.setTitle("Kick player");
 		dial.setHeaderText("Do you really want to kick " + player.getName() + " ?");
@@ -83,15 +119,14 @@ public class PlayerView {
 		Optional<String> result = dial.showAndWait();
 		
 		if (result.isPresent()) {
-//			server.kickPlayer(player, result.orElse("No reason indicated"));
-			System.out.println("reason : " + result.orElse("No reason indicated"));
+			server.kickPlayer(player, result.orElse("No reason indicated"));
 		}
 		
 
 	
 	}
 	
-	public void banPlayer(ActionEvent e) {
+	private void banPlayerAction(ActionEvent e) {
 		BanDialog dial = new BanDialog(player.getName(), "No reason indicated", 0);
 		dial.setTitle("Ban player");
 		dial.setHeaderText("Do you really want to ban " + player.getName() + " ?");
@@ -102,12 +137,21 @@ public class PlayerView {
 			Pair<String, Integer> defaultValues = new Pair<String, Integer>("No reason indicated", 0);
 			
 			server.banPlayer(player, result.orElse(defaultValues).getValue() + "d", result.orElse(defaultValues).getKey());
-			// TODO execute command on server. Don't forget to add the 'd' after the duration
-			System.out.println("reason : " + result.orElse(new Pair<String, Integer>("No reason indicated", 0)));
 		}
 		
 	}
-
+	
+	private void copySteamIDToClipboardAction(ActionEvent e) {
+		ClipboardContent content = new ClipboardContent();
+		content.putString(getSteamId());
+		Clipboard.getSystemClipboard().setContent(content);
+	
+	}
+	
+	private void steamProfileAction(ActionEvent e) {
+		app.getHostServices().showDocument("http://steamcommunity.com/profiles/" + getSteamId());
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof Player) {

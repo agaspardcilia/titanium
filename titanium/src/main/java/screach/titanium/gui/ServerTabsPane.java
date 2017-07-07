@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Tab;
@@ -13,8 +14,11 @@ import screach.titanium.core.Server;
 import screach.titanium.gui.servertab.ServerTab;
 
 public class ServerTabsPane extends TabPane {
-	public ServerTabsPane() {
+	private MainPane mainPane;
+	
+	public ServerTabsPane(MainPane mainPane) {
 		super();
+		this.mainPane = mainPane;
 	}
 
 	public void refreshTabs(List<Server> servers) {
@@ -41,7 +45,7 @@ public class ServerTabsPane extends TabPane {
 	}
 	
 	public void addTab(Server server) {
-		this.getTabs().add(new ServerTab(server));
+		this.getTabs().add(new ServerTab(server, this));
 	}
 	
 	public Server removeSelectedServer() {
@@ -84,5 +88,13 @@ public class ServerTabsPane extends TabPane {
 				}
 			}
 		});
+	}
+	
+	public Application getApplication() {
+		return mainPane.getApp();
+	}
+	
+	public void writeServerList() {
+		mainPane.writeServerList();
 	}
 }

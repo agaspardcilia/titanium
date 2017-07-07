@@ -197,6 +197,10 @@ public class Server extends Observable {
 		executeCommand("AdminSetNextMap \"" + map + "\"", true);
 	}
 
+	public void changeMap(String map) {
+		executeCommand("AdminChangeMap \"" + map + "\"", true);
+	}
+	
 	public void setSlomo(int clockSpeed) {
 		executeCommand("AdminSlomo " + clockSpeed, true);
 	}
@@ -308,6 +312,13 @@ public class Server extends Observable {
 		this.ping = ping;
 		setChanged();
 		notifyObservers(NotifyEventType.PING);
+	}
+	
+	public void changeInformations(Server newInformations) {
+		name = newInformations.getName();
+		address = newInformations.getAddress();
+		port = newInformations.getPort();
+		password = newInformations.getPassword();
 	}
 	
 	@Override

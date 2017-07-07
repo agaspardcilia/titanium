@@ -36,6 +36,7 @@ public class Controls extends BorderPane {
 		Button enableKits = new Button("Allow all kits");
 		Button disableKits = new Button("Disallow all kits");
 		Button setNextMap = new Button("Set next map");
+		Button changeMap = new Button("Change map");
 		Button setSlomo = new Button("Set slomo");
 		Button resetSlomo = new Button("Reset slomo");
 		Button enableVClaim = new Button("Enable vehicule claiming");
@@ -50,15 +51,15 @@ public class Controls extends BorderPane {
 		broadcast.setOnAction(this::broadcastAction);
 		enableVClaim.setOnAction(this::enableVClaimAction);
 		disableVClaim.setOnAction(this::disableVClaimAction);
-		
+		changeMap.setOnAction(this::changeMapAction);
 		
 		toolbar.getItems().add(disconnect);
 		toolbar.getItems().add(getSeparator());
 		toolbar.getItems().add(broadcast);
 		toolbar.getItems().add(getSeparator());
-		toolbar.getItems().addAll(enableKits, disableKits);
+		toolbar.getItems().addAll(setNextMap, changeMap);
 		toolbar.getItems().add(getSeparator());
-		toolbar.getItems().add(setNextMap);
+		toolbar.getItems().addAll(enableKits, disableKits);
 		toolbar.getItems().add(getSeparator());
 		toolbar.getItems().addAll(setSlomo, resetSlomo);
 		toolbar.getItems().add(getSeparator());
@@ -110,6 +111,17 @@ public class Controls extends BorderPane {
 		
 		if (result.isPresent()) {
 			tab.getServer().setNextMap(result.get());
+		}
+		
+	}
+	
+	private void changeMapAction(Event e) {
+		MapSelectorDialog dial = new MapSelectorDialog("Map selector");
+		
+		Optional<String> result = dial.showAndWait();
+		
+		if (result.isPresent()) {
+			tab.getServer().changeMap(result.get());
 		}
 		
 	}

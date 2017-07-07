@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javafx.collections.FXCollections;
@@ -28,10 +29,15 @@ import screach.titanium.core.ConnectionFailureException;
 import screach.titanium.core.NotifyEventType;
 import screach.titanium.core.Player;
 import screach.titanium.core.Server;
+import screach.titanium.gui.MainPane;
+import screach.titanium.gui.ServerTabsPane;
+import screach.titanium.gui.dialogs.EditServerDialog;
 
 public class ServerTab extends Tab implements Observer {
 	private Server server;
 
+	private ServerTabsPane tabs;
+	
 	private Pane connectedPane;
 	private Pane notConnectedPane;
 
@@ -47,18 +53,20 @@ public class ServerTab extends Tab implements Observer {
 
 	
 	
-	public ServerTab(Server server) {
+	public ServerTab(Server server, ServerTabsPane tabs) {
 		super(server.getName());
 		this.server = server;
+		this.tabs = tabs;
+		
 		this.setClosable(false);
 
 		server.addObserver(this);
 
 		connectedPlayersList = FXCollections.observableArrayList();
-		connectedPlayersList.addAll(server.getConnectedPlayers().stream().map(p -> new PlayerView(p, server)).collect(Collectors.toList()));
+		connectedPlayersList.addAll(server.getConnectedPlayers().stream().map(p -> new PlayerView(p, server, tabs.getApplication())).collect(Collectors.toList()));
 
 		dcPlayersList = FXCollections.observableArrayList();
-		dcPlayersList.addAll(server.getRecentlyDCPlayers().stream().map(p -> new PlayerView(p, server)).collect(Collectors.toList()));
+		dcPlayersList.addAll(server.getRecentlyDCPlayers().stream().map(p -> new PlayerView(p, server, tabs.getApplication())).collect(Collectors.toList()));
 
 
 		setupConnectedPane();
@@ -126,11 +134,13 @@ public class ServerTab extends Tab implements Observer {
 		notConnectedPane.setPadding(new Insets(15, 15, 15, 15));
 
 		Label l = new Label("Not connected");
-		Button b = new Button("Connect");
+		Button connect = new Button("Connect");
+		Button edit = new Button("Edit server informations...");
 
-		b.setOnAction(this::connectButton);
-
-		notConnectedPane.getChildren().addAll(l, b);
+		connect.setOnAction(this::connectButtonAction);
+		edit.setOnAction(this::editButtonAction);
+		
+		notConnectedPane.getChildren().addAll(l, connect, edit);
 	}
 
 	public void switchToDisconnected() {
@@ -141,7 +151,7 @@ public class ServerTab extends Tab implements Observer {
 		this.setContent(connectedPane);
 	}
 
-	private void connectButton(Event e) {
+	private void connectButtonAction(Event e) {
 		try {
 			connect();
 		} catch (IllegalStateException | IOException | ConnectionFailureException e1) {
@@ -149,6 +159,20 @@ public class ServerTab extends Tab implements Observer {
 			new Alert(AlertType.ERROR, "Connection to \"" + server + "\" has failed (" + e1.getMessage() + ")").show();
 			e1.printStackTrace();
 		}
+	}
+	
+	private void editButtonAction(Event e) {
+		EditServerDialog dial = new EditServerDialog(server);
+		
+		Optional<Server> result = dial.showAndWait();
+		
+		if (result.isPresent()) {
+			server.changeInformations(result.get());
+			serverInfo.refreshAll();
+			this.setText(server.getName());
+			tabs.writeServerList();
+		}
+		
 	}
 
 	public void connect() throws IllegalStateException, IOException, ConnectionFailureException {
@@ -205,7 +229,7 @@ public class ServerTab extends Tab implements Observer {
 
 		players.forEach(p -> {
 			if (!connectedPlayersList.contains(p))
-				connectedPlayersList.add(new PlayerView(p, server));
+				connectedPlayersList.add(new PlayerView(p, server, tabs.getApplication()));
 		});
 		
 		serverInfo.refreshPlayerCount();
@@ -215,7 +239,7 @@ public class ServerTab extends Tab implements Observer {
 	private void updateNotConnected(List<Player> players) {
 		players.forEach(p -> {
 			if (!dcPlayersList.contains(p))
-				dcPlayersList.add(new PlayerView(p, server));
+				dcPlayersList.add(new PlayerView(p, server, tabs.getApplication()));
 		});
 	}
 	

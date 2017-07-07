@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javafx.application.Application;
 import javafx.event.Event;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
@@ -25,11 +26,15 @@ public class MainPane extends BorderPane {
 	
 	private List<Server> servers;
 	
-	public MainPane(Stage primaryStage) {
+	private Application app;
+	
+	public MainPane(Stage primaryStage, Application app) {
 		super();
+		this.app = app;
+		this.primaryStage = primaryStage;
+
 		setupPane();
 		servers = new ArrayList<>();
-		this.primaryStage = primaryStage;
 		
 		primaryStage.setOnCloseRequest(this::quitAction);
 	}
@@ -39,7 +44,7 @@ public class MainPane extends BorderPane {
 		
 		this.setTop(menu);
 		
-		content = new ServerTabsPane();
+		content = new ServerTabsPane(this);
 		
 		this.setCenter(content);
 		
@@ -141,5 +146,12 @@ public class MainPane extends BorderPane {
 		return servers;
 	}
 	
+	public Application getApp() {
+		return app;
+	}
+	
+	public void writeServerList() {
+		ServerListLoader.writeServerList(servers);
+	}
 	
 }
