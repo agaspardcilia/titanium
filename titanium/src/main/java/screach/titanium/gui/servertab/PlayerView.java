@@ -14,7 +14,8 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.util.Pair;
 import screach.titanium.core.Player;
-import screach.titanium.core.Server;
+import screach.titanium.core.server.Server;
+import screach.titanium.core.server.RCONServerException;
 import screach.titanium.gui.dialogs.BanDialog;
 import utils.AssetsLoader;
 
@@ -111,6 +112,14 @@ public class PlayerView {
 		return server;
 	}
 	
+	public Player getPlayer() {
+		return player;
+	}
+	
+	public String getVacBans() {
+		return (player.getVacBans() == -1) ? "N/A" : player.getVacBans()+"";
+	}
+	
 	private void kickPlayerAction(ActionEvent e) {
 		TextInputDialog dial = new TextInputDialog("No reason indicated");
 		dial.setTitle("Kick player");
@@ -119,7 +128,11 @@ public class PlayerView {
 		Optional<String> result = dial.showAndWait();
 		
 		if (result.isPresent()) {
-			server.kickPlayer(player, result.orElse("No reason indicated"));
+			try {
+				server.kickPlayer(player, result.orElse("No reason indicated"));
+			} catch (RCONServerException e1) {
+				server.logError(e1);
+			}
 		}
 		
 
@@ -136,7 +149,11 @@ public class PlayerView {
 		if (result.isPresent()) {
 			Pair<String, Integer> defaultValues = new Pair<String, Integer>("No reason indicated", 0);
 			
-			server.banPlayer(player, result.orElse(defaultValues).getValue() + "d", result.orElse(defaultValues).getKey());
+			try {
+				server.banPlayer(player, result.orElse(defaultValues).getValue() + "d", result.orElse(defaultValues).getKey());
+			} catch (RCONServerException e1) {
+				server.logError(e1);
+			}
 		}
 		
 	}
@@ -162,5 +179,5 @@ public class PlayerView {
 			return super.equals(obj);
 		}
 	}
-	
+
 }

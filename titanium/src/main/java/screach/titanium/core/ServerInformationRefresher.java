@@ -3,6 +3,9 @@ package screach.titanium.core;
 import java.io.IOException;
 import java.net.InetAddress;
 
+import screach.titanium.core.server.Server;
+import screach.titanium.core.server.RCONServerException;
+
 public class ServerInformationRefresher implements Runnable {
 	private long INTERVAL = 1000;
 	
@@ -23,8 +26,13 @@ public class ServerInformationRefresher implements Runnable {
 				break;
 			}
 			
-			server.playerList();
-			server.showNextMap();
+			try {
+				server.playerList();
+				server.showNextMap();
+			} catch (RCONServerException e) {
+				// TODO handle this.
+				e.printStackTrace();
+			}
 			updatePing();
 		}
 		

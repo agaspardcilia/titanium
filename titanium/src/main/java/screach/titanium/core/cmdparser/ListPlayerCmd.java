@@ -1,14 +1,17 @@
 package screach.titanium.core.cmdparser;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import screach.titanium.core.Player;
-import screach.titanium.core.Server;
+import screach.titanium.core.server.Server;
 
 public class ListPlayerCmd extends CommandParser {
 	private final static String TRIGGER_REGEX = "----- Active Players -----";
-	private final static String DC_REGEX = "----- Recently Disconnected Players [Max of 15] -----";
-
+//	private final static String DC_REGEX = "----- Recently Disconnected Players [Max of 15] -----";
+	
+	
 
 	public ListPlayerCmd(Server server) {
 		super(server, false);
@@ -77,23 +80,5 @@ public class ListPlayerCmd extends CommandParser {
 
 		return new Player(id, steamId, name);
 	}
-
-	public static void main(String[] args) {
-		String rawCmd = "----- Active Players -----\n" + 
-				"ID: 0 | SteamID: 76561198029490858 | Name: wF.Screach\n" + 
-				"\n" + 
-				"----- Recently Disconnected Players [Max of 15] -----\n" + 
-				"ID: 2 | SteamID: 76561198375108831 | Since Disconnect: 03m.25s | Name: ARSESTARR";
-		ListPlayerCmd cmd = new ListPlayerCmd(null);
-
-		cmd.parseCommand(rawCmd);
-	}
-
-	/*
-	----- Active Players -----
-	ID: 0 | SteamID: 76561198029490858 | Name: wF.Screach
-
-	----- Recently Disconnected Players [Max of 15] -----
-	ID: 2 | SteamID: 76561198375108831 | Since Disconnect: 03m.25s | Name: ARSESTARR
-	 */
+	
 }

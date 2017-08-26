@@ -4,7 +4,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
-import screach.titanium.core.Server;
+import screach.titanium.core.server.Server;
 
 public class ServerInfoPane extends GridPane {
 	private Label name, capacity, ping, address, crtMap, nextMap;

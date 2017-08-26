@@ -1,21 +1,23 @@
-package screach.titanium.core;
+package screach.titanium.core.server;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observable;
+import java.util.concurrent.ExecutionException;
 
+import screach.titanium.core.ConnectionFailureException;
+import screach.titanium.core.NotifyEventType;
+import screach.titanium.core.Player;
+import screach.titanium.core.ServerInformationRefresher;
+import screach.titanium.core.cmdparser.AnswerParser;
 import screach.titanium.core.factories.ParserFactory;
 import utils.rcon.RconAnswerReceiver;
 import utils.rcon.RconClient;
 
 
 // TODO notify observers
-public class Server extends Observable {
-	private String name;
-	private String address;
-	private int port;
+public class LocalServer extends Server {
 	private String password;
 
 	// Network
@@ -27,41 +29,15 @@ public class Server extends Observable {
 	private Thread refresherThread;
 	private ServerInformationRefresher refresher;
 
-	private List<Player> connectedPlayers;
-	private List<Player> recentlyDCPlayers;
 
-	private ArrayList<String> consoleLogs;
-
-	// Stats
-	private int maxCapacity;
-	private long ping;
-	
-	private String currentMap;
-	private String nextMap;
-	
-	public Server(String name, String address, int port, String password) {
-		this.name = name;
-		this.address = address;
-		this.port = port;
+	public LocalServer(String name, String address, int port, String password) {
+		super(name, address, port);
 		this.password = password;
-
-		ping = -1;
-		maxCapacity = -1;
-		
-		currentMap = "no data";
-		nextMap = "no data";
-		
-		consoleLogs = new ArrayList<>();
-
-		connectedPlayers = new ArrayList<>();
-		recentlyDCPlayers = new ArrayList<>();
 	}
 
-
-
-
-	public void connect() throws IllegalStateException, IOException, ConnectionFailureException, UnknownHostException {
-		rcon = new RconClient(address, port);
+	@Override
+	public void connect() throws Exception {
+		rcon = new RconClient(getAddress(), getPort());
 		try {
 			rcon.connect();
 			rcon.authenticate(password);
@@ -70,9 +46,9 @@ public class Server extends Observable {
 		}
 
 		if (rcon.connected()) {
-			System.out.println("Connection to " + address + ":" + port + " : OK");
+			System.out.println("Connection to " + getAddress() + ":" + getPort()+ " : OK");
 		} else {
-			System.out.println("Can't connect to " + address);
+			System.out.println("Can't connect to " + getAddress());
 		}
 
 		receiver = new RconAnswerReceiver(rcon);
@@ -90,6 +66,7 @@ public class Server extends Observable {
 
 	}
 
+	@Override
 	public void disconnect() {
 		if (rcon.connected()) {
 			try {
@@ -108,6 +85,7 @@ public class Server extends Observable {
 		}
 	}
 
+	@Override
 	public void executeCommand(String command) {
 		System.out.println("executing : " + command);
 
@@ -118,14 +96,7 @@ public class Server extends Observable {
 		}
 	}
 	
-	public void executeCommand(String command, boolean log) {
-		executeCommand(command);
-		
-		if (log)
-			log(command);
-	}
-
-
+	@Override
 	public void refreshConnectedPlayersList(ArrayList<Player> players) {
 		// Add new players
 		players.forEach(p -> {
@@ -141,6 +112,7 @@ public class Server extends Observable {
 		notifyObservers(NotifyEventType.PLAYER_LIST);
 	}
 
+	@Override
 	public void refreshRecentlyDCPlayers(ArrayList<Player> players) {
 		// TODO make it better
 
@@ -151,90 +123,9 @@ public class Server extends Observable {
 	}
 
 
-	public void playerList() {
-		executeCommand("ListPLayers");
-	}
-
-	// AdminKick "<NameOrSteamId>" <KickReason> (Kicks a player from the server)
-	public void kickPlayer(Player p, String reason) {
-		executeCommand("AdminKick \"" + p.getSteamId() + "\" " + reason, true);
-	}
-
-	// AdminBan "<NameOrSteamId>" "<BanLength>" <BanReason> (Bans a player from the server for a length of time. 0 = Perm, 1d = 1 Day, 1m = 1 Month, etc)
-	public void banPlayer(Player p, String duration, String reason) {
-		executeCommand("AdminKick \"" + p.getSteamId() + "\" \"" + duration + "\" " + reason, true);
-	}
-
-	public void enableAllKits() {
-		executeCommand("AdminAllKitsAvailable true", true);
-	}
-
-	public void disableAllKits() {
-		executeCommand("AdminAllKitsAvailable false", true);
-	}
-
-	public void unlockVehicules() {
-		executeCommand("AdminDisableVehicleClaiming true", true);
-	}
-	
-	public void lockVehicules() {
-		executeCommand("AdminDisableVehicleClaiming false", true);
-	}
-	
-	public void killServer() {
-		// TODO
-	}
-
-	public void pauseMatch() {
-		// TODO
-	}
-
-	public void restardMatch() {
-		// TODO
-	}
-
-	public void setNextMapCmd(String map) {
-		executeCommand("AdminSetNextMap \"" + map + "\"", true);
-	}
-
-	public void changeMap(String map) {
-		executeCommand("AdminChangeMap \"" + map + "\"", true);
-	}
-	
-	public void setSlomo(int clockSpeed) {
-		executeCommand("AdminSlomo " + clockSpeed, true);
-	}
-
-	public void resetSlomo() {
-		setSlomo(1);
-	}
-
-	public void stats() {
-		// TODO - looks like it's not implemented yet or has been abandoned.
-	}
-
-	public void endMatch() {
-		// TODO
-	}
-	
-	public void showNextMap() {
-		executeCommand("ShowNextMap");
-	}
-	
-	public void broadcast(String content) {
-		executeCommand("AdminBroadcast " + content);
-	}
 
 
 
-	public String getAddress() {
-		return address;
-	}
-
-
-	public int getPort() {
-		return port;
-	}
 
 
 	public String getPassword() {
@@ -246,52 +137,59 @@ public class Server extends Observable {
 		return rcon;
 	}
 
-	public String getName() {
-		return name;
-	}
-
+	@Override
 	public List<Player> getConnectedPlayers() {
 		return connectedPlayers;
 	}
 
+	@Override
 	public List<Player> getRecentlyDCPlayers() {
 		return recentlyDCPlayers;
 	}
 
+	@Override
 	public boolean isConnected() {
 		return rcon != null && rcon.connected();
 	}
 
+	@Override
 	public long getPing() {
 		return ping;
 	}
 
+	@Override
 	public int getMaxCapacity() {
 		return maxCapacity;
 	}
 
+	@Override
 	public void log(String log) {
 		consoleLogs.add(log);
 		setChanged();
 		notifyObservers(NotifyEventType.CONSOLE_LOG);
 	}
 
+	@Override
 	public ArrayList<String>getConsoleLog() {
 		return consoleLogs;
 	}
 	
+	@Override
 	public String getLastLog() {
 		return consoleLogs.get(consoleLogs.size()-1);
 	}
 
+	@Override
 	public synchronized String getCurrentMap() {
 		return currentMap;
 	}
 	
+	@Override
 	public synchronized String getNextMap() {
 		return nextMap;
 	}
 	
+	@Override
 	public synchronized void setNextMap(String nextMap) {
 		if (!this.nextMap.equals(nextMap)) {
 			this.nextMap = nextMap;
@@ -300,6 +198,7 @@ public class Server extends Observable {
 		}
 	}
 	
+	@Override
 	public synchronized void setCurrentMap(String currentMap) {
 		if (!this.currentMap.equals(currentMap)) {
 			this.currentMap = currentMap;
@@ -308,21 +207,24 @@ public class Server extends Observable {
 		}
 	}
 	
+	@Override
 	public void setPing(long ping) {
 		this.ping = ping;
 		setChanged();
 		notifyObservers(NotifyEventType.PING);
 	}
-	
+	@Override
 	public void changeInformations(Server newInformations) {
-		name = newInformations.getName();
-		address = newInformations.getAddress();
-		port = newInformations.getPort();
-		password = newInformations.getPassword();
+		changeInformations(newInformations);
+		
+		if (newInformations instanceof LocalServer)
+			password = ((LocalServer)newInformations).getPassword();
 	}
 	
 	@Override
 	public String toString() {
-		return name + " " + address + ":" + port;
+		return getName() + " " + getAddress() + ":" + getPort();
 	}
+	
+		
 }

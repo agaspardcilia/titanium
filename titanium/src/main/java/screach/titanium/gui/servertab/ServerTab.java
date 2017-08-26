@@ -1,11 +1,9 @@
 package screach.titanium.gui.servertab;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javafx.collections.FXCollections;
@@ -18,26 +16,24 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
-import screach.titanium.core.ConnectionFailureException;
 import screach.titanium.core.NotifyEventType;
 import screach.titanium.core.Player;
-import screach.titanium.core.Server;
-import screach.titanium.gui.MainPane;
+import screach.titanium.core.server.Server;
 import screach.titanium.gui.ServerTabsPane;
-import screach.titanium.gui.dialogs.EditServerDialog;
+import utils.ErrorUtils;
 
-public class ServerTab extends Tab implements Observer {
+public abstract class ServerTab extends Tab implements Observer{
+	public final static int CONNECTION_ATTEMPS = 5;
+
 	private Server server;
 
 	private ServerTabsPane tabs;
-	
+
 	private Pane connectedPane;
 	private Pane notConnectedPane;
 
@@ -51,13 +47,13 @@ public class ServerTab extends Tab implements Observer {
 	private ServerInfoPane serverInfo;
 	private Controls controlsPane;
 
-	
-	
+
+
 	public ServerTab(Server server, ServerTabsPane tabs) {
 		super(server.getName());
 		this.server = server;
 		this.tabs = tabs;
-		
+
 		this.setClosable(false);
 
 		server.addObserver(this);
@@ -119,6 +115,16 @@ public class ServerTab extends Tab implements Observer {
 		controlsPane = new Controls(this);
 
 		connectedPane.setPadding(new Insets(0, 10, 0, 10));
+		controlsPane.setPadding(new Insets(0, 0, 10, 0));
+
+
+		serverInfo.setMinHeight(65);
+		serverInfo.setMaxHeight(65);
+
+		controlsPane.setMinHeight(200);
+		controlsPane.setMaxHeight(200);
+
+		playersPane.setPrefHeight(1000000);
 
 		connectedPane.getChildren().add(serverInfo);
 		connectedPane.getChildren().add(new Separator(Orientation.HORIZONTAL));
@@ -139,7 +145,7 @@ public class ServerTab extends Tab implements Observer {
 
 		connect.setOnAction(this::connectButtonAction);
 		edit.setOnAction(this::editButtonAction);
-		
+
 		notConnectedPane.getChildren().addAll(l, connect, edit);
 	}
 
@@ -152,30 +158,30 @@ public class ServerTab extends Tab implements Observer {
 	}
 
 	private void connectButtonAction(Event e) {
-		try {
-			connect();
-		} catch (IllegalStateException | IOException | ConnectionFailureException e1) {
+		Exception lastException = null;
+		
+		for (int i = 0; i < CONNECTION_ATTEMPS; i++) {
+			try {
+				connect();
+				break;
+			} catch (Exception e1) {
+				e1.printStackTrace();
+				lastException = e1;
+			} 
+		}
+
+		if (!server.isConnected()) {
 			switchToDisconnected();
-			new Alert(AlertType.ERROR, "Connection to \"" + server + "\" has failed (" + e1.getMessage() + ")").show();
-			e1.printStackTrace();
+			
+			Alert alert = ErrorUtils.newErrorAlert("Server connection error", "Connection to \"" + server + "\" has failed.", lastException.getClass() + " : " + lastException.getMessage());
+			alert.show();
 		}
-	}
-	
-	private void editButtonAction(Event e) {
-		EditServerDialog dial = new EditServerDialog(server);
-		
-		Optional<Server> result = dial.showAndWait();
-		
-		if (result.isPresent()) {
-			server.changeInformations(result.get());
-			serverInfo.refreshAll();
-			this.setText(server.getName());
-			tabs.writeServerList();
-		}
-		
+
 	}
 
-	public void connect() throws IllegalStateException, IOException, ConnectionFailureException {
+	protected abstract void editButtonAction(Event e);
+
+	public void connect() throws Exception {
 		server.connect();
 		switchToConnected();
 	}
@@ -213,15 +219,17 @@ public class ServerTab extends Tab implements Observer {
 
 
 		}
-		
+
 	}
 
 
 	private void updateConnected(List<Player> players) {
 		List<PlayerView> toRemove = new ArrayList<PlayerView>();
-
+		
+		// TODO user Player instead of PlayerView for contains().
+		
 		connectedPlayersList.forEach(p -> {
-			if (!players.contains(p)) 
+			if (!players.contains(p.getPlayer())) 
 				toRemove.add(p);
 		});
 
@@ -231,7 +239,7 @@ public class ServerTab extends Tab implements Observer {
 			if (!connectedPlayersList.contains(p))
 				connectedPlayersList.add(new PlayerView(p, server, tabs.getApplication()));
 		});
-		
+
 		serverInfo.refreshPlayerCount();
 
 	}
@@ -242,15 +250,15 @@ public class ServerTab extends Tab implements Observer {
 				dcPlayersList.add(new PlayerView(p, server, tabs.getApplication()));
 		});
 	}
-	
+
 	private void updateConsoleLog(String log) {
 		controlsPane.addLog(log);
 	}
-	
+
 	private void updateMaps() {
 		serverInfo.refreshMaps();
 	}
-	
+
 	private void updatePing() {
 		serverInfo.refreshPing();
 	}

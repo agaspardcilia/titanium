@@ -1,6 +1,6 @@
 package screach.titanium.core.cmdparser;
 
-import screach.titanium.core.Server;
+import screach.titanium.core.server.Server;
 
 public abstract class CommandParser {
 	protected Server server;

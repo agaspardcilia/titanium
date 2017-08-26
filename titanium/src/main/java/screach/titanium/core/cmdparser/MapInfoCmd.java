@@ -1,6 +1,6 @@
 package screach.titanium.core.cmdparser;
 
-import screach.titanium.core.Server;
+import screach.titanium.core.server.Server;
 
 public class MapInfoCmd extends CommandParser {
 	private static String CMD_BEGINNING = "Current map is";

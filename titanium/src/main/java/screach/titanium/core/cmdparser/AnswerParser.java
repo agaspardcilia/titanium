@@ -1,20 +1,17 @@
-package screach.titanium.core;
+package screach.titanium.core.cmdparser;
 
 import java.util.ArrayList;
 
-import screach.titanium.core.cmdparser.CommandParser;
+import screach.titanium.core.server.LocalServer;
 import utils.rcon.RconAnswerReceiver;
 
-public class AnswerParser implements Runnable {
+public class AnswerParser extends SimpleAnswerParser implements Runnable {
 	private RconAnswerReceiver receiver;
-	private ArrayList<CommandParser> handledCommands;
-	private Server server;
 	
 	
-	public AnswerParser(RconAnswerReceiver receiver, Server server) {
+	public AnswerParser(RconAnswerReceiver receiver, LocalServer server) {
+		super(server);
 		this.receiver = receiver;
-		this.server = server;
-		handledCommands = new ArrayList<>();
 	}
 	
 	@Override
@@ -33,7 +30,8 @@ public class AnswerParser implements Runnable {
 	}
 	
 	
-	private void parseAnswer(String answer) {
+	@Override
+	public void parseAnswer(String answer) {
 		for (CommandParser cmdp : handledCommands) {
 			if (cmdp.match(answer)) {
 				cmdp.parseCommand(answer);
@@ -44,6 +42,7 @@ public class AnswerParser implements Runnable {
 		server.log(answer);
 	}
 	
+	@Override
 	public ArrayList<CommandParser> getHandledCommands() {
 		return handledCommands;
 	}

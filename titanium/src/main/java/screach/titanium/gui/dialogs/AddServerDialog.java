@@ -11,10 +11,10 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.GridPane;
-import screach.titanium.core.Server;
+import screach.titanium.core.server.LocalServer;
 import screach.titanium.gui.dialogs.listeners.RequieredListener;
 
-public class AddServerDialog extends Dialog<Server>{
+public class AddServerDialog extends Dialog<LocalServer>{
 	public AddServerDialog() {
 		super();
 		// Create the custom dialog.
@@ -75,7 +75,7 @@ public class AddServerDialog extends Dialog<Server>{
 		this.setResultConverter(dialogButton -> {
 			try {
 				if (dialogButton == addButtonType) {
-					return new Server(serverName.getText(), address.getText(), Integer.parseInt(port.getText()), password.getText());
+					return new LocalServer(serverName.getText(), address.getText(), Integer.parseInt(port.getText()), password.getText());
 				}
 			} catch (NumberFormatException e) {
 				return null;

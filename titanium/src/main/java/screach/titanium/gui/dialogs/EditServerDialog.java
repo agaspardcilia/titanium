@@ -11,11 +11,11 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.GridPane;
-import screach.titanium.core.Server;
+import screach.titanium.core.server.LocalServer;
 import screach.titanium.gui.dialogs.listeners.RequieredListener;
 
-public class EditServerDialog extends Dialog<Server>{
-	public EditServerDialog(Server server) {
+public class EditServerDialog extends Dialog<LocalServer>{
+	public EditServerDialog(LocalServer server) {
 		super();
 		// Create the custom dialog.
 		this.setTitle("Edit server");
@@ -32,6 +32,7 @@ public class EditServerDialog extends Dialog<Server>{
 		grid.setVgap(10);
 		grid.setPadding(new Insets(20, 150, 10, 10));
 
+		System.out.println("server : " + server);
 		TextField serverName = new TextField(server.getName());
 		TextField address = new TextField(server.getAddress());
 		TextField port = new TextField(server.getPort() + "");
@@ -75,7 +76,7 @@ public class EditServerDialog extends Dialog<Server>{
 		this.setResultConverter(dialogButton -> {
 			try {
 				if (dialogButton == addButtonType) {
-					return new Server(serverName.getText(), address.getText(), Integer.parseInt(port.getText()), password.getText());
+					return new LocalServer(serverName.getText(), address.getText(), Integer.parseInt(port.getText()), password.getText());
 				}
 			} catch (NumberFormatException e) {
 				return null;

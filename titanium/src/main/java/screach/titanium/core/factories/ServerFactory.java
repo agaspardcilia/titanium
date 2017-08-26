@@ -1,9 +1,9 @@
 package screach.titanium.core.factories;
 
-import screach.titanium.core.Server;
+import screach.titanium.core.server.LocalServer;
 
 public class ServerFactory {
-	public static Server newServer(String name, String address, int port, String password) {
-		return new Server(name, address, port, password);
+	public static LocalServer newServer(String name, String address, int port, String password) {
+		return new LocalServer(name, address, port, password);
 	}
 }

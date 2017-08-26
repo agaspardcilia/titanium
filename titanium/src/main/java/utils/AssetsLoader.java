@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class AssetsLoader {
 	private final static String ASSETS_DIRECTORY_PATH = "assets/";
@@ -50,6 +51,23 @@ public class AssetsLoader {
 			loadAssets();
 		
 		return assets.get(fileName);
+	}
+	
+	public static ImageView getAssetView(String filename, int w, int h) {
+		if (assets == null)
+			loadAssets();
+		
+		Image asset = getAsset(filename);
+		
+		if (asset == null)
+			return null;
+		
+		ImageView result = new ImageView(asset);
+		
+		result.setFitWidth(w);
+		result.setFitHeight(h);
+		
+		return result;
 	}
 	
 	

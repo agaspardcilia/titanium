@@ -14,12 +14,17 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.ToolBar;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import screach.titanium.core.server.RCONServerException;
 import screach.titanium.gui.dialogs.MapSelectorDialog;
+import utils.AssetsLoader;
 
 public class Controls extends BorderPane {
+	private final static int DEFAULT_ICON_SIZE = 25;
+	
 	private ServerTab tab;
 	private TextArea consoleLogs;
 	private TextField manualCommandField;
@@ -31,16 +36,21 @@ public class Controls extends BorderPane {
 		
 		ToolBar toolbar = new ToolBar();
 		
-		Button disconnect = new Button("Disconnect");
-		Button broadcast = new Button("Broadcast");
+		Button disconnect = new Button("", AssetsLoader.getAssetView("disconnect.png", DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE));
+		Button broadcast = new Button("", AssetsLoader.getAssetView("broadcast.png", DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE));
 		Button enableKits = new Button("Allow all kits");
 		Button disableKits = new Button("Disallow all kits");
-		Button setNextMap = new Button("Set next map");
-		Button changeMap = new Button("Change map");
+		Button setNextMap = new Button("", AssetsLoader.getAssetView("next_map.png", DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE));
+		Button changeMap = new Button("", AssetsLoader.getAssetView("change_map.png", DEFAULT_ICON_SIZE, DEFAULT_ICON_SIZE));
 		Button setSlomo = new Button("Set slomo");
 		Button resetSlomo = new Button("Reset slomo");
 		Button enableVClaim = new Button("Enable vehicule claiming");
 		Button disableVClaim = new Button("Disable vehicule claiming");
+		
+		disconnect.setTooltip(new Tooltip("Disconnect from server."));
+		broadcast.setTooltip(new Tooltip("Broadcast a message."));
+		changeMap.setTooltip(new Tooltip("Change current map. Be careful, this command will immediatly switch to the desired map."));
+		setNextMap.setTooltip(new Tooltip("Change the next played map."));
 		
 		disconnect.setOnAction(this::disconnectAction);
 		enableKits.setOnAction(this::enableKitsAction);
@@ -58,15 +68,21 @@ public class Controls extends BorderPane {
 		toolbar.getItems().add(broadcast);
 		toolbar.getItems().add(getSeparator());
 		toolbar.getItems().addAll(setNextMap, changeMap);
-		toolbar.getItems().add(getSeparator());
-		toolbar.getItems().addAll(enableKits, disableKits);
-		toolbar.getItems().add(getSeparator());
-		toolbar.getItems().addAll(setSlomo, resetSlomo);
-		toolbar.getItems().add(getSeparator());
-		toolbar.getItems().addAll(enableVClaim, disableVClaim);
+		
+		// XXX not working atm, owi disabled them.
+//		toolbar.getItems().add(getSeparator());
+//		toolbar.getItems().addAll(enableKits, disableKits);
+//		toolbar.getItems().add(getSeparator());
+//		toolbar.getItems().addAll(setSlomo, resetSlomo);
+//		toolbar.getItems().add(getSeparator());
+//		toolbar.getItems().addAll(enableVClaim, disableVClaim);
 
 		consoleLogs = new TextArea();
 		consoleLogs.setEditable(false);		
+
+		consoleLogs.textProperty().addListener((obs, oldV, newV) -> {
+			consoleLogs.setScrollTop(Double.MAX_VALUE);
+		});
 		
 		manualCommandField = new TextField();
 		Button manualCommandButton = new Button("Send");
@@ -97,11 +113,21 @@ public class Controls extends BorderPane {
 	}
 	
 	private void enableKitsAction(Event e) {
-		tab.getServer().enableAllKits();
+		try {
+			tab.getServer().enableAllKits();
+		} catch (RCONServerException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	}
 
 	private void disableKitsAction(Event e) {
-		tab.getServer().disableAllKits();
+		try {
+			tab.getServer().disableAllKits();
+		} catch (RCONServerException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 	}
 	
 	private void setNextMapAction(Event e) {
@@ -121,7 +147,11 @@ public class Controls extends BorderPane {
 		Optional<String> result = dial.showAndWait();
 		
 		if (result.isPresent()) {
-			tab.getServer().changeMap(result.get());
+			try {
+				tab.getServer().changeMap(result.get());
+			} catch (RCONServerException e1) {
+				logError(e1);
+			}
 		}
 		
 	}
@@ -148,20 +178,31 @@ public class Controls extends BorderPane {
 				tab.getServer().setSlomo(Integer.parseInt(result.get()));
 			} catch (NumberFormatException e1) {
 				new Alert(AlertType.ERROR, "Invalid clock speed value");
+			} catch (RCONServerException e1) {
+				logError(e1);
 			}
 		}
 	
 	}
 	
 	private void resetSlomoAction(Event e) {
-		tab.getServer().resetSlomo();
+		try {
+			tab.getServer().resetSlomo();
+		} catch (RCONServerException e1) {
+			logError(e1);
+		}
 	}
 	
 	private void sendManualCommandAction(Event e) {
 		String cmd = manualCommandField.getText().trim();
 		
 		if (!cmd.isEmpty()) {
-			tab.getServer().executeCommand(cmd, true);
+			addLog("> " + cmd);
+			try {
+				tab.getServer().executeCommand(cmd, false);
+			} catch (RCONServerException e1) {
+				logError(e1);
+			}
 			manualCommandField.setText("");
 		}
 		
@@ -174,17 +215,33 @@ public class Controls extends BorderPane {
 		Optional<String> result = dial.showAndWait();
 		
 		if (result.isPresent()) {
-			tab.getServer().broadcast(result.get());
+			try {
+				tab.getServer().broadcast(result.get());
+			} catch (RCONServerException e1) {
+				logError(e1);
+			}
 		}
 		
 	}
 	
 	private void enableVClaimAction(Event e) {
-		tab.getServer().lockVehicules();
+		try {
+			tab.getServer().lockVehicules();
+		} catch (RCONServerException e1) {
+			logError(e1);
+		}
 	}
 	
 	private void disableVClaimAction(Event e) {
-		tab.getServer().unlockVehicules();
+		try {
+			tab.getServer().unlockVehicules();
+		} catch (RCONServerException e1) {
+			logError(e1);
+		}
+	}
+	
+	private void logError(RCONServerException e) {
+		tab.getServer().logError(e);
 	}
 	
 	public void addLog(String log) {
@@ -196,7 +253,7 @@ public class Controls extends BorderPane {
 	
 	private Separator  getSeparator() {
 		Separator result = new Separator(Orientation.VERTICAL);
-		result.setPadding(new Insets(0, 5, 0, 8));
+		result.setPadding(new Insets(0, 0, 0, 3));
 		
 		return result;
 	}
