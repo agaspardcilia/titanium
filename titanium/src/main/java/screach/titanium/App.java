@@ -11,6 +11,7 @@ import screach.titanium.core.server.LocalServer;
 import screach.titanium.core.server.WSPServer;
 import screach.titanium.core.wsp.WebApiException;
 import screach.titanium.core.wsp.WebServiceProvider;
+import screach.titanium.gui.LoadingStage;
 import screach.titanium.gui.MainPane;
 import utils.AssetsLoader;
 import utils.ServerListLoader;
@@ -53,7 +54,7 @@ public class App extends Application {
 		primaryStage.getIcons().add(AssetsLoader.getAsset("titanium_icon.png"));
 
 		refreshTabs();
-			
+		
 		primaryStage.show();
 	}
 
@@ -66,15 +67,6 @@ public class App extends Application {
 		
 		if (!wsps.isEmpty()) {
 			wsp = wsps.get(0); // XXX only works with one wsp atm.
-			try {
-				wsp.connect();
-				
-				wsp.fecthAndSetOrganization();
-				wsp.updateServerList();
-				wspServers = wsp.getAllAvailableServers();
-			} catch (WebApiException | IOException | HttpException e) {
-				e.printStackTrace();
-			}
 		} 
 
 

@@ -56,6 +56,7 @@ public class WebServiceProvider {
 	public final static String API_PATH_REMOVE_SERVERS = "servers/remove";
 	public final static String API_PATH_CHECK_SERVERS = "servers/check";
 
+	public final static int API_ERROR_WRONG_SIGNIN_INFO = 1001;
 
 	private String name;
 	private WebApi api;
@@ -64,16 +65,27 @@ public class WebServiceProvider {
 	private String key;
 	private int userId;
 	private List<Organization> organizations;
+	
+	private boolean connected;
+	private boolean rememberUsername;
+	private boolean rememberPassword;
 
-	public WebServiceProvider(WebApi api, String username, String password, String name) {
+	public WebServiceProvider(WebApi api, String username, String password, String name, boolean rememberUsername, boolean rememberPassword) {
 		this.name = name;
 		this.api = api;
 		this.username = username;
 		this.password = password;
-
+		this.rememberPassword = rememberPassword;
+		this.rememberUsername = rememberUsername;
+			
+		connected = false;		
 		userId = -1;
 
 		organizations = new ArrayList<>();
+	}
+	
+	public WebServiceProvider(WebApi api, String name) {
+		this(api, "", "", name, false, false);
 	}
 
 	public void connect() throws IOException, HttpException, WebApiException {
@@ -90,6 +102,7 @@ public class WebServiceProvider {
 			key = root.getString(API_ARG_KEY);
 			userId = root.getInt(API_ARG_IDUSER);
 			System.out.println("Connection to wapi " + name + " is successful."); // XXX
+			connected = true;
 		} else {
 			System.out.println("Connection to wapi " + name + " has failed.");
 			throw ErrorUtils.parseError(root);
@@ -285,6 +298,30 @@ public class WebServiceProvider {
 
 	public int getUserId() {
 		return userId;
+	}
+	
+	public boolean rememberUsername() {
+		return rememberUsername;
+	}
+	
+	public boolean rememberPassword() {
+		return rememberPassword;
+	}
+	
+	public void setRememberPassword(boolean rememberPassword) {
+		this.rememberPassword = rememberPassword;
+	}
+	
+	public void setRememberUsername(boolean rememberUsername) {
+		this.rememberUsername = rememberUsername;
+	}
+	
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
 

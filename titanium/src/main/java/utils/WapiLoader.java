@@ -1,6 +1,7 @@
 package utils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -17,11 +18,16 @@ public class WapiLoader {
 	public final static String WAPI_PATH = "wapi.json";
 	
 	
-	public static List<WebServiceProvider> loadWapi() {
+	public static List<WebServiceProvider> loadWapi() throws JSONException {
 		ArrayList<WebServiceProvider> result = new ArrayList<>();
 		
 		try {
-			JSONObject root = new JSONObject(FileUtils.readFile(new File(WAPI_PATH)));
+			String raw = FileUtils.readFile(new File(WAPI_PATH), true);
+			
+			if (raw.length() == 0) 
+				return result;
+			
+			JSONObject root = new JSONObject(raw);
 			
 			JSONArray wapis = root.getJSONArray("wapis");
 			
@@ -33,7 +39,8 @@ public class WapiLoader {
 								elem.getInt("port"), elem.getString("path"));
 						
 						WebServiceProvider wsp = new WebServiceProvider(crt, elem.getString("username"),
-								elem.getString("password"), elem.getString("name"));
+								elem.getString("password"), elem.getString("name"), 
+								elem.getBoolean("remember-username"), elem.getBoolean("remember-password"));
 						
 						result.add(wsp);
 					} catch (MalformedURLException | JSONException e1) {
@@ -54,5 +61,36 @@ public class WapiLoader {
 		
 		return result;
 	}
+	
+	public static void writeWapi(List<WebServiceProvider> wapis) throws IOException {
+		JSONObject root = new JSONObject();
+		
+		wapis.forEach(wapi -> {
+			JSONObject crt = new JSONObject();
+			
+			crt.put("name", wapi.getName());
+			crt.put("protocol", wapi.getApi().getProtocol());
+			crt.put("host", wapi.getApi().getHost());
+			crt.put("path", wapi.getApi().getBasePath());
+			crt.put("port", wapi.getApi().getPort());
+			crt.put("remember-username", wapi.rememberUsername());
+			crt.put("remember-password", wapi.rememberPassword());
+			crt.put("username", (wapi.rememberUsername()) ? wapi.getUsername() : "");
+			crt.put("password", (wapi.rememberPassword()) ? wapi.getPassword() : "");
+
+			
+			root.append("wapis", crt);
+		});
+		
+
+		File f = new File(WAPI_PATH);
+		try {
+			FileUtils.WriteFile(f, root.toString());
+		} catch (FileNotFoundException e) {
+			f.createNewFile();
+			FileUtils.WriteFile(f, root.toString());
+		}
+	}
+	
 	
 }

@@ -28,13 +28,13 @@ public class ErrorUtils {
 		Alert result;
 
 		if (e instanceof JSONException) {
-			result = newErrorAlert("JSON Error", "Error while parsing server answer.", e.getMessage());
+			result = newErrorAlert("JSON Error", "Error while parsing server answer.", e.getClass() + " : " + e.getMessage());
 		} else if (e instanceof WebApiException) {
 			WebApiException wae = (WebApiException) e;
 			result = newErrorAlert("Web API error", "The server answered an error.",
 					wae.getCode() + ":" + wae.getErrorMessage());
 		} else if (e instanceof IOException || e instanceof HttpException) {
-			result = newErrorAlert("IO Error", "Error while sending request to server.", e.getMessage());
+			result = newErrorAlert("IO Error", "Error while sending request to server.", e.getClass() + " : " + e.getMessage());
 		} else {
 			result = newErrorAlert("Error", "Unknown Error. ", e.getClass() + " : " + e.getMessage());
 		}

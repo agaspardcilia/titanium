@@ -44,17 +44,12 @@ public class EditWSPDialog extends Dialog<WebServiceProvider>{
 		TextField host = new TextField();
 		TextField basePath = new TextField();
 		TextField port = new TextField();
-		TextField username = new TextField();
-		PasswordField password = new PasswordField();
-		
 		
 		if (wsp != null) {
 			wspName.setText(wsp.getName());
 			host.setText(wsp.getApi().getHost());
 			basePath.setText(wsp.getApi().getBasePath());
 			port.setText(wsp.getApi().getPort() + "");
-			username.setText(wsp.getUsername());
-			password.setText(wsp.getPassword());
 			protocol.getSelectionModel().select(wsp.getApi().getProtocol());
 		} else {
 			protocol.getSelectionModel().select("http");
@@ -70,10 +65,6 @@ public class EditWSPDialog extends Dialog<WebServiceProvider>{
 		grid.add(port, 1, 3);
 		grid.add(new Label("Api path"), 0, 4);
 		grid.add(basePath, 1, 4);
-		grid.add(new Label("Username"), 0, 5);
-		grid.add(username, 1, 5);
-		grid.add(new Label("Password"), 0, 6);
-		grid.add(password, 1, 6);
 
 		port.textProperty().addListener(new ChangeListener<String>() {
 			@Override
@@ -93,7 +84,6 @@ public class EditWSPDialog extends Dialog<WebServiceProvider>{
 		wspName.textProperty().addListener(new RequieredListener(addButton));
 		host.textProperty().addListener(new RequieredListener(addButton));
 		port.textProperty().addListener(new RequieredListener(addButton));
-		password.textProperty().addListener(new RequieredListener(addButton));
 
 
 		this.getDialogPane().setContent(grid);
@@ -104,8 +94,7 @@ public class EditWSPDialog extends Dialog<WebServiceProvider>{
 					try {
 						WebApi webApi = new WebApi(protocol.getValue(), host.getText(), Integer.parseInt(port.getText()), basePath.getText());
 						
-						WebServiceProvider result = new WebServiceProvider(webApi, username.getText(),
-								password.getText(), wspName.getText());
+						WebServiceProvider result = new WebServiceProvider(webApi, wspName.getText());
 						
 						return result;
 					} catch (MalformedURLException e) {

@@ -1,5 +1,6 @@
 package screach.titanium.gui;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +10,7 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -17,13 +19,19 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import screach.titanium.core.server.Server;
+import screach.titanium.App;
 import screach.titanium.core.server.LocalServer;
 import screach.titanium.core.server.WSPServer;
+import screach.titanium.core.wsp.WebApiException;
 import screach.titanium.core.wsp.WebServiceProvider;
 import screach.titanium.gui.dialogs.AddServerDialog;
+import screach.titanium.gui.dialogs.ConnectToWSPDialog;
 import screach.titanium.gui.dialogs.EditWSPDialog;
 import screach.titanium.gui.org.OrganizationManagerStage;
+import utils.ErrorUtils;
 import utils.ServerListLoader;
+import utils.WapiLoader;
+import utils.webapi.HttpException;
 
 public class MainPane extends BorderPane {
 	private Stage primaryStage;
@@ -33,9 +41,9 @@ public class MainPane extends BorderPane {
 	private List<LocalServer> servers;
 	private WebServiceProvider wsp;
 
-	private Application app;
+	private App app;
 
-	public MainPane(Stage primaryStage, Application app, WebServiceProvider wsp) {
+	public MainPane(Stage primaryStage, App app, WebServiceProvider wsp) {
 		super();
 		this.app = app;
 		this.primaryStage = primaryStage;
@@ -101,14 +109,18 @@ public class MainPane extends BorderPane {
 		Menu result = new Menu("WSP");
 
 		MenuItem editWSPItem = new MenuItem("Edit WSP...");
-		MenuItem orgManagerItem = new MenuItem("Orgnaization manager...");
+		MenuItem connectItem = new MenuItem("Sign in...");
+		MenuItem orgManagerItem = new MenuItem("Organization manager...");
 
+		
 
+		connectItem.setOnAction(this::connectToWSPAction);
 		editWSPItem.setOnAction(this::editWSPAction);
 		orgManagerItem.setOnAction(this::organizationManagerAction);
-
-		result.getItems().add(editWSPItem);
+		
+		result.getItems().add(connectItem);
 		result.getItems().add(orgManagerItem);
+		result.getItems().add(editWSPItem);
 
 		return result;
 	}
@@ -167,23 +179,77 @@ public class MainPane extends BorderPane {
 		servers.add(server);
 	}
 
-	public void editWSPAction(Event e) {
+	private void editWSPAction(Event e) {
 		EditWSPDialog dialog = new EditWSPDialog(wsp);
 		Optional<WebServiceProvider> result = dialog.showAndWait();
 
 		if (result.isPresent()) {
 			wsp = result.get();
+			writeWSP(wsp);
+			
 		} else {
 			new Alert(AlertType.ERROR, "Wrong WSP information");
 		}
 	}
 
-	public void organizationManagerAction(Event e) {
+	private void organizationManagerAction(Event e) {
 		OrganizationManagerStage oms = new OrganizationManagerStage(wsp);
 
 		oms.show();
 	}
 
+	private void connectToWSPAction(Event e) {
+		if (wsp == null) {
+			ErrorUtils.newErrorAlert("WSP Error", "There is no loaded Web Service Provider", 
+					"You need to define a Web Service Provider first.\n"
+					+ "WSP->Edit WSP...").show();
+		} else {
+			
+			ConnectToWSPDialog dial = new ConnectToWSPDialog(wsp);
+			
+			Optional<ButtonType> result = dial.showAndWait();
+			
+			System.out.println(result);
+			if (result.isPresent() && result.get().getButtonData().equals(ButtonData.OK_DONE)) {
+				writeWSP(wsp);
+				LoadingStage ls = new LoadingStage("WSP sign in", "");
+				ls.show();
+				ls.requestFocus();
+				try {
+					ls.setNotice("Signing in...");
+					wsp.connect();
+					ls.setProgress(0.25);
+					
+					ls.setNotice("Fetching organizations...");
+					wsp.fecthAndSetOrganization();
+					ls.setProgress(0.5);
+					
+					ls.setNotice("Updating server list...");
+					app.refreshWSPTabs();
+					ls.setProgress(1);
+					
+				} catch (IOException | HttpException e1) {
+					ErrorUtils.getAlertFromException(e1).show();
+					e1.printStackTrace();
+				} catch(WebApiException e1){
+					if (e1.getCode() == WebServiceProvider.API_ERROR_WRONG_SIGNIN_INFO) {
+						ErrorUtils.newErrorAlert("Sign in error", "Authentication failed.", "Wrong username or password.").show();
+					} else {
+						ErrorUtils.getAlertFromException(e1).show();
+					}
+					e1.printStackTrace();
+				} finally {
+					ls.close();
+				}
+			
+			}
+			
+			
+			
+			
+		}
+	}
+	
 	public List<LocalServer> getServerList() {
 		return servers;
 	}
@@ -194,6 +260,18 @@ public class MainPane extends BorderPane {
 
 	public void writeServerList() {
 		ServerListLoader.writeServerList(servers);
+	}
+	
+	private void writeWSP(WebServiceProvider wsp) {
+		List<WebServiceProvider> l = new ArrayList<>();
+		l.add(wsp);
+		try {
+			WapiLoader.writeWapi(l);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			ErrorUtils.newErrorAlert("WSP saving error", "Error while saving Web Service Provider",
+					e1.getClass() + " : " + e1.getMessage()).show();;
+		}
 	}
 
 }
