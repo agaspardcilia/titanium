@@ -1,6 +1,7 @@
 package screach.titanium.core.wsp;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +13,6 @@ import org.json.JSONObject;
 
 import screach.titanium.core.server.WSPServer;
 import utils.ErrorUtils;
-import utils.WapiLoader;
 import utils.webapi.HttpException;
 import utils.webapi.WebApi;
 
@@ -22,6 +22,7 @@ public class WebServiceProvider {
 	public final static String API_ARG_USERNAME = "username";
 	public final static String API_ARG_PASSWORD = "password";
 	public final static String API_ARG_ID = "id";
+	public final static String API_ARG_DISCORD_ID = "discordid";
 	public final static String API_ARG_IDUSER = "iduser";
 	public final static String API_ARG_IDSERVER = "idserver";
 	public final static String API_ARG_NAME = "name";
@@ -38,9 +39,18 @@ public class WebServiceProvider {
 	public final static String API_ARG_SIZE = "size";
 	public final static String API_ARG_RESULT = "result";
 	public final static String API_ARG_USERS = "users";
-
-	public final static String API_PATH_LOGIN = "user/login";
+	public final static String API_ARG_USER = "user";
+	public final static String API_ARG_CLIENT_ID = "clientid";
+	public final static String API_ARG_CALLBACK = "callback";
+	public final static String API_ARG_CODE = "code";
+	
+	
+	
 	public final static String API_PATH_SEARCH_MEMBERS = "user/search";
+	public final static String API_PATH_GET_USER_INFO = "user/key";
+	
+	public final static String API_PATH_GET_KEY = "auth/key";
+	public final static String API_PATH_GET_CONFIGURATION = "auth/configuration";
 
 	public final static String API_PATH_LIST_ORGS = "org/list";
 	public final static String API_PATH_CREATE_ORG = "org/create";
@@ -57,50 +67,46 @@ public class WebServiceProvider {
 	public final static String API_PATH_CHECK_SERVERS = "servers/check";
 
 	public final static int API_ERROR_WRONG_SIGNIN_INFO = 1001;
+	public final static int API_ERROR_INVALID_KEY = 1003;
 
 	private String name;
 	private WebApi api;
-	private String username;
-	private String password;
 	private String key;
-	private int userId;
-	private List<Organization> organizations;
+	private User user;
 	
-	private boolean connected;
-	private boolean rememberUsername;
-	private boolean rememberPassword;
+	private List<Organization> organizations;
 
-	public WebServiceProvider(WebApi api, String username, String password, String name, boolean rememberUsername, boolean rememberPassword) {
+	private String discordClientId;
+	private String callBackPath;
+
+	private boolean connected;
+	private boolean isConfigured;
+
+	public WebServiceProvider(WebApi api, String name) {
 		this.name = name;
 		this.api = api;
-		this.username = username;
-		this.password = password;
-		this.rememberPassword = rememberPassword;
-		this.rememberUsername = rememberUsername;
-			
-		connected = false;		
-		userId = -1;
 
+		connected = false;
+		isConfigured = false;
+		user = null;
+		key = "";
+		
 		organizations = new ArrayList<>();
 	}
-	
-	public WebServiceProvider(WebApi api, String name) {
-		this(api, "", "", name, false, false);
-	}
 
-	public void connect() throws IOException, HttpException, WebApiException {
+
+	public void connect(String code) throws IOException, HttpException, WebApiException {
 		HashMap<String, String> param = new HashMap<>();
 
-		param.put(API_ARG_USERNAME, username);
-		param.put(API_ARG_PASSWORD, password);
+		param.put(API_ARG_CODE, code);
 
-		String rawAnser = api.sendGetRequest(API_PATH_LOGIN, param);
+		String rawAnser = api.sendGetRequest(API_PATH_GET_KEY, param);
 
 		JSONObject root = new JSONObject(rawAnser);
 
 		if (ErrorUtils.isSuccessful(root)) {
 			key = root.getString(API_ARG_KEY);
-			userId = root.getInt(API_ARG_IDUSER);
+			System.out.println("userId");
 			System.out.println("Connection to wapi " + name + " is successful."); // XXX
 			connected = true;
 		} else {
@@ -110,6 +116,29 @@ public class WebServiceProvider {
 
 	}
 
+	public void fetchConfiguration() throws JSONException, IOException, HttpException, WebApiException {
+		HashMap<String, String> args = new HashMap<>();
+
+		JSONObject answer = sendRequest(API_PATH_GET_CONFIGURATION, args, false);
+		
+		if (ErrorUtils.isSuccessful(answer)) {
+			discordClientId = answer.getString(API_ARG_CLIENT_ID);
+			callBackPath = answer.getString(API_ARG_CALLBACK);
+			isConfigured = true;
+		} else {
+			throw ErrorUtils.parseError(answer);
+		}
+	}
+	
+	public String getDiscordAuthURL() throws MalformedURLException {
+		String callBackPath = api.getRootUrl() + this.callBackPath;
+		return "https://discordapp.com/oauth2/authorize?redirect_uri=" + callBackPath + "&scope=identify%20guilds&response_type=code&client_id=" + discordClientId;
+	}
+
+	public String getCallBackUrl() {
+		return "";
+	}
+	
 	public List<Organization> getOrganizations() {
 		return organizations;
 	}
@@ -230,7 +259,7 @@ public class WebServiceProvider {
 				String username = crt.getString(WebServiceProvider.API_ARG_USERNAME);
 				int id = crt.getInt(WebServiceProvider.API_ARG_ID);
 
-				result.add(new Member(id, username, id == userId));
+				result.add(new Member(id, username, id == user.getId()));
 			});
 		} else {
 			throw ErrorUtils.parseError(answer);
@@ -243,13 +272,13 @@ public class WebServiceProvider {
 		Map<String, String> args = new HashMap<>();
 
 		args.put(API_ARG_NAME, name);
-		
+
 		JSONObject answer = sendRequest(API_PATH_CREATE_ORG, args, true);
-		
+
 		if (!ErrorUtils.isSuccessful(answer)) {
 			throw ErrorUtils.parseError(answer);
 		}
-			
+
 	}
 
 	public void removeOrganization(Organization toRemove) throws JSONException, IOException, HttpException, WebApiException {
@@ -266,6 +295,19 @@ public class WebServiceProvider {
 		}
 	}
 
+	public void fetchUserInfo() throws JSONException, IOException, HttpException, WebApiException {
+		Map<String, String> args = new HashMap<>();
+
+		JSONObject answer = sendRequest(API_PATH_GET_USER_INFO, args, true);
+
+		if (ErrorUtils.isSuccessful(answer)) {
+			user = new User(answer.getJSONObject(API_ARG_USER));
+			connected = true;
+		} else {
+			throw ErrorUtils.parseError(answer);
+		}
+	}
+	
 	public List<WSPServer> getAllAvailableServers() {
 		List<WSPServer> result = new ArrayList<>();
 
@@ -276,6 +318,21 @@ public class WebServiceProvider {
 		return result;
 	}
 
+	public String getInfo() {
+		String result = name + "";
+		
+		if (isConfigured)
+			result += " (configured)";
+		
+		if (connected) 
+			result += " connected";
+		
+		if (user != null)
+			result += " as " + user.getUsername() + " - " + getAllAvailableServers().size() + " available wsp server(s).";
+		
+		return result;
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -288,42 +345,23 @@ public class WebServiceProvider {
 		return key; // TODO
 	}
 
-	public String getPassword() {
-		return password;
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
 	public int getUserId() {
-		return userId;
+		return user.getId();
 	}
 	
-	public boolean rememberUsername() {
-		return rememberUsername;
+	public boolean isConfigured() {
+		return isConfigured;
 	}
 	
-	public boolean rememberPassword() {
-		return rememberPassword;
+	public boolean isConnected() {
+		return connected;
 	}
 	
-	public void setRememberPassword(boolean rememberPassword) {
-		this.rememberPassword = rememberPassword;
+	public void setKey(String key) {
+		this.key = key;
 	}
 	
-	public void setRememberUsername(boolean rememberUsername) {
-		this.rememberUsername = rememberUsername;
+	public void setConnected(boolean connected) {
+		this.connected = connected;
 	}
-	
-	public void setUsername(String username) {
-		this.username = username;
-	}
-	
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-
-
 }

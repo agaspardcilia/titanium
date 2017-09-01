@@ -58,6 +58,8 @@ public abstract class Server extends Observable {
 	public abstract void connect() throws Exception; 
 	
 	public abstract void disconnect();
+	
+	public abstract void disconnectWithError();
 
 	public abstract boolean isConnected();
 	
@@ -79,7 +81,7 @@ public abstract class Server extends Observable {
 				pool.submit(() -> {
 					PlayerUtils.updateVACBanStatus(p, VAC_TRIES);
 					setChanged();
-					notifyObservers();
+					notifyObservers(NotifyEventType.VAC);
 				});
 				setChanged();
 			} 
@@ -257,5 +259,13 @@ public abstract class Server extends Observable {
 		log("Error : " + e.getMessage());
 	}
 	
+	public ExecutorService getPool() {
+		return pool;
+	}
+	
+	
+	public void closePool() {
+		pool.shutdown();
+	}
 }
 

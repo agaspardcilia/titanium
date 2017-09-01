@@ -17,7 +17,14 @@ public class ErrorUtils {
 
 	public static WebApiException parseError(JSONObject answer) {
 		if (answer.has("errorCode")) {
-			return new WebApiException(answer.getInt("errorCode"), answer.getString("errorMessage"));
+			int code = answer.getInt("errorCode");
+			String message = answer.getString("errorMessage");
+			
+			if (!answer.isNull("debug")) {
+				message += " : " + answer.getString("debug");
+			}
+			
+			return new WebApiException(code, message);
 		} else {
 			return new WebApiException(-1, "Unknown error.");
 		}

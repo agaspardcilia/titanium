@@ -7,6 +7,7 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import screach.titanium.core.NotifyEventType;
 import screach.titanium.core.ServerInformationRefresher;
 import screach.titanium.core.cmdparser.SimpleAnswerParser;
 import screach.titanium.core.factories.ParserFactory;
@@ -46,7 +47,7 @@ public class WSPServer extends Server {
 	}
 
 	@Override
-	public void executeCommand(String command) throws WebApiException {
+	public void executeCommand(String command) throws RCONServerException {
 		String raw = "";
 		Map<String, String> args = new HashMap<>();
 
@@ -80,6 +81,8 @@ public class WSPServer extends Server {
 			System.out.println(e.getMessage());
 			System.out.println("raw : ");
 			System.out.println(raw);
+		} catch (ServerException e) {
+			throw new RCONServerException(e.getMessage());
 		}
 
 	}
@@ -128,19 +131,37 @@ public class WSPServer extends Server {
 				refresher = new ServerInformationRefresher(this);
 				refresherThread = new Thread(refresher);
 				refresherThread.start();
+				setChanged();
 			}
 		} catch (Exception e) {
 			isConnected = false;
 			throw e;
 		}
 	}
+	
+	@Override
+	public void disconnectWithError() {
+		if (isConnected) {
+			disconnect_intern();
+			setChanged();
+			notifyObservers(NotifyEventType.DISCONNECT_ERROR);
+		}
+		
+	}
 
 	@Override
 	public void disconnect() {
 		if (isConnected) {
-			isConnected = false;
-			refresherThread.interrupt();
+			disconnect_intern();
+			setChanged();
+			notifyObservers(NotifyEventType.DISCONNECT);
 		}
+	}
+	
+	private void disconnect_intern() {
+		isConnected = false;
+		refresherThread.interrupt();
+		closePool();
 	}
 
 	@Override
@@ -152,5 +173,7 @@ public class WSPServer extends Server {
 	public String toString() {
 		return organization.getName() + " : " + getWSPServerName() + " " + getAddress() + ":" + getPort();
 	}
+
+	
 
 }

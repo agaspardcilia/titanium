@@ -1,6 +1,7 @@
 package screach.titanium.core.factories;
 
 import screach.titanium.core.cmdparser.AnswerParser;
+import screach.titanium.core.cmdparser.DisconnectCmd;
 import screach.titanium.core.cmdparser.ListPlayerCmd;
 import screach.titanium.core.cmdparser.MapInfoCmd;
 import screach.titanium.core.cmdparser.SimpleAnswerParser;
@@ -14,6 +15,7 @@ public class ParserFactory {
 		
 		result.getHandledCommands().add(new ListPlayerCmd(server));
 		result.getHandledCommands().add(new MapInfoCmd(server));
+		result.getHandledCommands().add(new DisconnectCmd(server, false));
 		
 		return result;
 	}

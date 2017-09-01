@@ -38,9 +38,10 @@ public class WapiLoader {
 						WebApi crt = new WebApi(elem.getString("protocol"), elem.getString("host"),
 								elem.getInt("port"), elem.getString("path"));
 						
-						WebServiceProvider wsp = new WebServiceProvider(crt, elem.getString("username"),
-								elem.getString("password"), elem.getString("name"), 
-								elem.getBoolean("remember-username"), elem.getBoolean("remember-password"));
+						WebServiceProvider wsp = new WebServiceProvider(crt, elem.getString("name"));
+						
+						if (!elem.isNull("key"))
+							wsp.setKey(elem.getString("key"));
 						
 						result.add(wsp);
 					} catch (MalformedURLException | JSONException e1) {
@@ -65,7 +66,7 @@ public class WapiLoader {
 	public static void writeWapi(List<WebServiceProvider> wapis) throws IOException {
 		JSONObject root = new JSONObject();
 		
-		wapis.forEach(wapi -> {
+		wapis.forEach((wapi) -> {
 			JSONObject crt = new JSONObject();
 			
 			crt.put("name", wapi.getName());
@@ -73,11 +74,9 @@ public class WapiLoader {
 			crt.put("host", wapi.getApi().getHost());
 			crt.put("path", wapi.getApi().getBasePath());
 			crt.put("port", wapi.getApi().getPort());
-			crt.put("remember-username", wapi.rememberUsername());
-			crt.put("remember-password", wapi.rememberPassword());
-			crt.put("username", (wapi.rememberUsername()) ? wapi.getUsername() : "");
-			crt.put("password", (wapi.rememberPassword()) ? wapi.getPassword() : "");
-
+			
+			if (!wapi.getKey().isEmpty())
+				crt.put("key", wapi.getKey());
 			
 			root.append("wapis", crt);
 		});

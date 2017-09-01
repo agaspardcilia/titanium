@@ -6,16 +6,19 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.stream.Collectors;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -25,9 +28,10 @@ import screach.titanium.core.NotifyEventType;
 import screach.titanium.core.Player;
 import screach.titanium.core.server.Server;
 import screach.titanium.gui.ServerTabsPane;
+import utils.AssetsLoader;
 import utils.ErrorUtils;
 
-public abstract class ServerTab extends Tab implements Observer{
+public abstract class ServerTab extends Tab implements Observer {
 	public final static int CONNECTION_ATTEMPS = 5;
 
 	private Server server;
@@ -50,14 +54,14 @@ public abstract class ServerTab extends Tab implements Observer{
 
 
 	public ServerTab(Server server, ServerTabsPane tabs) {
-		super(server.getName());
+		super();
 		this.server = server;
 		this.tabs = tabs;
-
+		
 		this.setClosable(false);
 
 		server.addObserver(this);
-
+		
 		connectedPlayersList = FXCollections.observableArrayList();
 		connectedPlayersList.addAll(server.getConnectedPlayers().stream().map(p -> new PlayerView(p, server, tabs.getApplication())).collect(Collectors.toList()));
 
@@ -67,9 +71,8 @@ public abstract class ServerTab extends Tab implements Observer{
 
 		setupConnectedPane();
 		setupNotConnectedPane();
-
+		
 		this.setContent(notConnectedPane);
-
 	}
 
 	public void setupConnectedPane() {
@@ -140,8 +143,8 @@ public abstract class ServerTab extends Tab implements Observer{
 		notConnectedPane.setPadding(new Insets(15, 15, 15, 15));
 
 		Label l = new Label("Not connected");
-		Button connect = new Button("Connect");
-		Button edit = new Button("Edit server informations...");
+		Button connect = new Button("Connect", AssetsLoader.getIcon("connect.png"));
+		Button edit = new Button("Edit server informations...", AssetsLoader.getIcon("edit.png"));
 
 		connect.setOnAction(this::connectButtonAction);
 		edit.setOnAction(this::editButtonAction);
@@ -150,11 +153,15 @@ public abstract class ServerTab extends Tab implements Observer{
 	}
 
 	public void switchToDisconnected() {
-		this.setContent(notConnectedPane);
+		Platform.runLater(() -> {
+			this.setContent(notConnectedPane);
+			
+		});
 	}
 
 	public void switchToConnected() {
 		this.setContent(connectedPane);
+		refreshTitle();
 	}
 
 	private void connectButtonAction(Event e) {
@@ -181,6 +188,8 @@ public abstract class ServerTab extends Tab implements Observer{
 
 	protected abstract void editButtonAction(Event e);
 
+	
+	
 	public void connect() throws Exception {
 		server.connect();
 		switchToConnected();
@@ -188,13 +197,32 @@ public abstract class ServerTab extends Tab implements Observer{
 
 	public void disconnect() {
 		server.disconnect();
-		switchToDisconnected();
 	}
 
 	public Server getServer() {
 		return server;
 	}
 
+	protected void refreshTitle() {
+		Platform.runLater(() -> {
+			this.setGraphic(getTitleNodde());
+		});
+	}
+	
+	protected Node getTitleNodde() {
+		GridPane result = new GridPane();
+		
+		result.setHgap(5);
+		
+		result.addRow(0, getConnectionStatusIcon(), new Label(server.getName()));
+		
+		return result;
+	}
+	
+	protected ImageView getConnectionStatusIcon() {
+		return (server.isConnected()) ? AssetsLoader.getIcon("connected_icon.png"): AssetsLoader.getIcon("not_connected_icon.png");
+	}
+	
 	@Override
 	public void update(Observable o, Object arg) {
 
@@ -215,11 +243,30 @@ public abstract class ServerTab extends Tab implements Observer{
 			case PING:
 				updatePing();
 				break;
+			case VAC:
+				updateVac();
+				break;
+			case DISCONNECT:
+				switchToDisconnected();
+				refreshTitle();
+				break;
+			case DISCONNECT_ERROR:
+				switchToDisconnectedWithAlert();
+				refreshTitle();
+				break;
 			}
 
 
 		}
 
+	}
+	
+	private void updateVac() {
+		//XXX awful way to do it.
+		List<PlayerView> tmp = new ArrayList<>(connectedPlayersList);
+		
+		connectedPlayersList.clear();
+		connectedPlayersList.addAll(tmp);
 	}
 
 
@@ -261,5 +308,13 @@ public abstract class ServerTab extends Tab implements Observer{
 
 	private void updatePing() {
 		serverInfo.refreshPing();
+	}
+	
+	public void switchToDisconnectedWithAlert() {
+		switchToDisconnected();
+		Platform.runLater(() -> {
+			Alert a = ErrorUtils.newErrorAlert("Disconnected from " + server.getName(), "Server connection lost.","");
+			a.show();
+		});
 	}
 }

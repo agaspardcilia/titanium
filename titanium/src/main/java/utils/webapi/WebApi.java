@@ -113,10 +113,17 @@ public class WebApi {
 
 			sc.close();
 
+			System.out.println(result);
+			
 			return result;
 		} finally {
 			sc.close();
 		}
+	}
+	
+	public URL getRootUrl() throws MalformedURLException {
+		return new URL(protocol, host, port, basePath);
+
 	}
 	
 	public String getHost() {
@@ -181,4 +188,6 @@ public class WebApi {
 		
 		return result;
 	}
+	
+	
 }

@@ -1,19 +1,23 @@
 package screach.titanium.gui.dialogs;
 
+import java.net.MalformedURLException;
+
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.layout.GridPane;
+import screach.titanium.App;
 import screach.titanium.core.wsp.WebServiceProvider;
 import screach.titanium.gui.dialogs.listeners.RequieredListener;
+import utils.ErrorUtils;
 
-public class ConnectToWSPDialog extends Dialog<ButtonType> {
+public class ConnectToWSPDialog extends Dialog<String> {
 	public ConnectToWSPDialog(WebServiceProvider wsp) {
 		super();
 		// Create the custom dialog.
@@ -29,27 +33,23 @@ public class ConnectToWSPDialog extends Dialog<ButtonType> {
 		grid.setHgap(10);
 		grid.setVgap(10);
 		grid.setPadding(new Insets(20, 150, 10, 10));
+		
+		Button openDiscordUrlButton = new Button("Sign in via Discord");
+		TextField codeField = new TextField();
+		
+		openDiscordUrlButton.setOnAction((event) -> {
+			try {
+				App.getCurrentInstance().getHostServices().showDocument(wsp.getDiscordAuthURL());
+			} catch (MalformedURLException e) {
+				Alert a = ErrorUtils.getAlertFromException(e);
+				a.show();
+				
+				e.printStackTrace();
+			}
+		});
 
-		TextField username = new TextField();
-		PasswordField password = new PasswordField();
-		CheckBox rememberUsername = new CheckBox("Remember username");
-		CheckBox rememberPassword = new CheckBox("Remember password");
-
-		rememberUsername.setIndeterminate(false);
-		rememberPassword.setIndeterminate(false);
-
-
-		if (wsp != null) {
-			username.setText(wsp.getUsername());
-			password.setText(wsp.getPassword());
-			rememberUsername.setSelected(wsp.rememberUsername());
-			rememberPassword.setSelected(wsp.rememberPassword());
-		}
-
-		grid.addRow(0, new Label("Username"), username);
-		grid.addRow(1, new Label("Password"), password);
-		grid.addRow(2, rememberUsername);
-		grid.addRow(3, rememberPassword);
+		grid.addRow(0, openDiscordUrlButton);
+		grid.addRow(1, new Label("Authorization code"), codeField);
 
 
 		Node okButton = this.getDialogPane().lookupButton(addButtonType);
@@ -58,8 +58,7 @@ public class ConnectToWSPDialog extends Dialog<ButtonType> {
 
 		// Verify required inputs
 		// TODO not working
-		username.textProperty().addListener(new RequieredListener(okButton));
-		password.textProperty().addListener(new RequieredListener(okButton));
+		codeField.textProperty().addListener(new RequieredListener(okButton));
 
 
 		this.getDialogPane().setContent(grid);
@@ -67,13 +66,10 @@ public class ConnectToWSPDialog extends Dialog<ButtonType> {
 		this.setResultConverter(dialogButton -> {
 
 			if (dialogButton.getButtonData().equals(ButtonData.OK_DONE)) {
-				wsp.setUsername(username.getText());
-				wsp.setPassword(password.getText());
-				wsp.setRememberUsername(rememberUsername.isSelected());
-				wsp.setRememberPassword(rememberPassword.isSelected());
+				return codeField.getText();
 			}
 
-			return dialogButton;
+			return null;
 		});
 
 	}

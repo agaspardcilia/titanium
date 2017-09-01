@@ -108,7 +108,7 @@ public class Controls extends BorderPane {
 	}
 	
 	
-	private void disconnectAction(Event e) {
+	public void disconnectAction(Event e) {
 		tab.disconnect();
 	}
 	

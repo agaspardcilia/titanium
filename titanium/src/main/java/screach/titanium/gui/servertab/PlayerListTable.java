@@ -9,7 +9,7 @@ import javafx.scene.layout.HBox;
 
 public class PlayerListTable extends TableView<PlayerView>{
 	private ObservableList<PlayerView> players;
-	
+	private final static String DEFAULT_STYLE = "-fx-alignment: CENTER-LEFT;";
 	
 	public PlayerListTable(ObservableList<PlayerView> players) {
 		super();
@@ -25,6 +25,7 @@ public class PlayerListTable extends TableView<PlayerView>{
 		steamId.setCellValueFactory(new PropertyValueFactory<>("steamPan"));
 		vacBans.setCellValueFactory(new PropertyValueFactory<>("vacBans"));
 		actions.setCellValueFactory(new PropertyValueFactory<>("actionPan"));
+		
 		
 		id.setMaxWidth(25);
 		id.setMinWidth(25);
@@ -46,6 +47,9 @@ public class PlayerListTable extends TableView<PlayerView>{
 		this.getColumns().add(vacBans);
 		this.getColumns().add(actions);
 
+		this.getColumns().forEach(c -> {
+			c.setStyle(DEFAULT_STYLE);
+		});
 		
 		this.players = players;
 		

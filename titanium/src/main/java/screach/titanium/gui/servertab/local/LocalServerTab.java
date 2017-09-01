@@ -22,6 +22,7 @@ public class LocalServerTab extends ServerTab {
 	public LocalServerTab(LocalServer server, ServerTabsPane tabs) {
 		super(server, tabs);
 		this.server = server;
+		this.setGraphic(getTitleNodde());
 	}
 
 
@@ -40,6 +41,6 @@ public class LocalServerTab extends ServerTab {
 		}
 		
 	}
-
+	
 	
 }

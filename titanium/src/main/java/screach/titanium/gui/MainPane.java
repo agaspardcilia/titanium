@@ -5,12 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONException;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -28,6 +29,7 @@ import screach.titanium.gui.dialogs.AddServerDialog;
 import screach.titanium.gui.dialogs.ConnectToWSPDialog;
 import screach.titanium.gui.dialogs.EditWSPDialog;
 import screach.titanium.gui.org.OrganizationManagerStage;
+import utils.AssetsLoader;
 import utils.ErrorUtils;
 import utils.ServerListLoader;
 import utils.WapiLoader;
@@ -38,6 +40,8 @@ public class MainPane extends BorderPane {
 	private MenuBar menu;
 	private ServerTabsPane content;
 
+	private MenuItem orgManagerItem;
+	
 	private List<LocalServer> servers;
 	private WebServiceProvider wsp;
 
@@ -52,8 +56,51 @@ public class MainPane extends BorderPane {
 		setupPane();
 		servers = new ArrayList<>();
 		primaryStage.setOnCloseRequest(this::quitAction);
+		Platform.runLater(() -> {
+			initWSP();
+		});
 	}
-
+	
+	private void initWSP() {
+		if (wsp != null) {
+			LoadingStage ls = null;
+			try {
+				wsp.fetchConfiguration();
+				if (!wsp.getKey().isEmpty()) {
+					ls = new LoadingStage("WSP sign in", "");
+					ls.initOwner(primaryStage);
+					ls.show();
+					ls.requestFocus();
+					
+					loadUser(ls);
+					wsp.setConnected(true);
+					orgManagerItem.setDisable(false);
+				}
+			} catch (WebApiException e) {
+				Alert a;
+				if (e.getCode() == WebServiceProvider.API_ERROR_INVALID_KEY) {
+					a = ErrorUtils.newErrorAlert("Web Service Provider Error", "You token is invalid. Sign in again please.", e.getCode() + " : " + e.getMessage());
+					wsp.setKey("");
+					writeWSP(wsp);
+				} else {
+					a = ErrorUtils.newErrorAlert("Web Service Provider Error", "Cannot retreive wsp configuration", e.getClass() + "\n" + e.getMessage());
+				}
+				a.initOwner(primaryStage);
+				a.show();
+				e.printStackTrace();
+			} catch (JSONException | IOException | HttpException e) {
+				
+				Alert a = ErrorUtils.newErrorAlert("Web Service Provider Error", "Cannot retreive wsp configuration", e.getClass() + "\n" + e.getMessage());
+				a.initOwner(primaryStage);
+				a.show();
+				e.printStackTrace();
+			} finally {
+				if (ls != null)
+					ls.close();
+			}
+		}
+	}
+	
 	private void setupPane() {
 		menu = getMenuBar();
 
@@ -75,12 +122,14 @@ public class MainPane extends BorderPane {
 
 	private Menu getServerMenu() {
 		Menu result = new Menu("Servers");
-		MenuItem addServerItem = new MenuItem("Add a server...");
-		MenuItem removeCrtServerItem = new MenuItem("Remove current server");
-		MenuItem connectToAll = new MenuItem("Connect to all servers");
-		MenuItem disconnectAllItem = new MenuItem("Disconnect from all servers");
-		MenuItem quitItem = new MenuItem("Quit");
+		MenuItem addServerItem = new MenuItem("Add a server...", AssetsLoader.getIcon("new_icon.png"));
+		MenuItem removeCrtServerItem = new MenuItem("Remove current server", AssetsLoader.getIcon("delete_icon.png"));
+		MenuItem connectToAll = new MenuItem("Connect to all servers", AssetsLoader.getIcon("connect.png"));
+		MenuItem disconnectAllItem = new MenuItem("Disconnect from all servers", AssetsLoader.getIcon("disconnect.png"));
+		MenuItem quitItem = new MenuItem("Quit", AssetsLoader.getIcon("quit_icon.png"));
 
+		
+		
 		addServerItem.setOnAction(this::addServerAction);
 		removeCrtServerItem.setOnAction(this::removeServerAction);
 		connectToAll.setOnAction(this::connectToAllAction);
@@ -108,11 +157,11 @@ public class MainPane extends BorderPane {
 	private Menu getWSMenu() {
 		Menu result = new Menu("WSP");
 
-		MenuItem editWSPItem = new MenuItem("Edit WSP...");
-		MenuItem connectItem = new MenuItem("Sign in...");
-		MenuItem orgManagerItem = new MenuItem("Organization manager...");
+		MenuItem editWSPItem = new MenuItem("Edit WSP...", AssetsLoader.getIcon("edit.png"));
+		MenuItem connectItem = new MenuItem("Sign in...", AssetsLoader.getIcon("discord_icon.png"));
+		orgManagerItem = new MenuItem("Organization manager...", AssetsLoader.getIcon("wsp_icon.png"));
 
-		
+		orgManagerItem.setDisable(true);
 
 		connectItem.setOnAction(this::connectToWSPAction);
 		editWSPItem.setOnAction(this::editWSPAction);
@@ -184,8 +233,15 @@ public class MainPane extends BorderPane {
 		Optional<WebServiceProvider> result = dialog.showAndWait();
 
 		if (result.isPresent()) {
-			wsp = result.get();
-			writeWSP(wsp);
+			try {
+				wsp = result.get();
+				wsp.fetchConfiguration();
+				writeWSP(wsp);
+			} catch (JSONException | WebApiException | IOException | HttpException e1) {
+				Alert a = ErrorUtils.getAlertFromException(e1);
+				a.show();
+				e1.printStackTrace();
+			}
 			
 		} else {
 			new Alert(AlertType.ERROR, "Wrong WSP information");
@@ -207,27 +263,24 @@ public class MainPane extends BorderPane {
 			
 			ConnectToWSPDialog dial = new ConnectToWSPDialog(wsp);
 			
-			Optional<ButtonType> result = dial.showAndWait();
+			Optional<String> result = dial.showAndWait();
 			
 			System.out.println(result);
-			if (result.isPresent() && result.get().getButtonData().equals(ButtonData.OK_DONE)) {
+			if (result.isPresent()) {
 				writeWSP(wsp);
 				LoadingStage ls = new LoadingStage("WSP sign in", "");
+				ls.initOwner(primaryStage);
 				ls.show();
 				ls.requestFocus();
 				try {
 					ls.setNotice("Signing in...");
-					wsp.connect();
+					wsp.connect(result.get());
 					ls.setProgress(0.25);
+					orgManagerItem.setDisable(false);
 					
-					ls.setNotice("Fetching organizations...");
-					wsp.fecthAndSetOrganization();
-					ls.setProgress(0.5);
+					loadUser(ls);
 					
-					ls.setNotice("Updating server list...");
-					app.refreshWSPTabs();
-					ls.setProgress(1);
-					
+					writeWSP(wsp);
 				} catch (IOException | HttpException e1) {
 					ErrorUtils.getAlertFromException(e1).show();
 					e1.printStackTrace();
@@ -243,11 +296,26 @@ public class MainPane extends BorderPane {
 				}
 			
 			}
-			
-			
-			
-			
 		}
+	}
+	
+	public void loadUser(LoadingStage ls) throws WebApiException, IOException, HttpException {
+		ls.setNotice("Fetching user information...");
+		wsp.fetchUserInfo();
+		ls.setProgress(0.25);
+		
+		ls.setNotice("Fetching organizations...");
+		wsp.fecthAndSetOrganization();
+		ls.setProgress(0.5);
+		
+		ls.setNotice("Updating server list...");
+		app.refreshWSPTabs();
+		ls.setProgress(1);
+		
+		ls.close();
+		
+		
+		refreshWindowTitle();
 	}
 	
 	public List<LocalServer> getServerList() {
@@ -256,6 +324,10 @@ public class MainPane extends BorderPane {
 
 	public Application getApp() {
 		return app;
+	}
+	
+	public void refreshWindowTitle() {
+		app.setMainWindowsName(wsp.getInfo());
 	}
 
 	public void writeServerList() {

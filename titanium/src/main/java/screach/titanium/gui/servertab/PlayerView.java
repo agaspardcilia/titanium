@@ -117,7 +117,15 @@ public class PlayerView {
 	}
 	
 	public String getVacBans() {
-		return (player.getVacBans() == -1) ? "N/A" : player.getVacBans()+"";
+		if (player.getVacBans() == -1) {
+			return "N/A";
+		} else {
+			if (player.getVacBans() == 0) {
+				return "None";
+			} else {
+				return player.getVacBans()+"";
+			}
+		}
 	}
 	
 	private void kickPlayerAction(ActionEvent e) {

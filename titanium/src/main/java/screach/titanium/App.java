@@ -1,6 +1,5 @@
 package screach.titanium;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,23 +8,21 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import screach.titanium.core.server.LocalServer;
 import screach.titanium.core.server.WSPServer;
-import screach.titanium.core.wsp.WebApiException;
 import screach.titanium.core.wsp.WebServiceProvider;
-import screach.titanium.gui.LoadingStage;
 import screach.titanium.gui.MainPane;
 import utils.AssetsLoader;
 import utils.ServerListLoader;
 import utils.WapiLoader;
-import utils.webapi.HttpException;;
 
 public class App extends Application {
 	private static App currentInstance;
 	
-	public final static int WIDTH_DFT = 885;
+	public final static int WIDTH_DFT = 1280;
 	public final static int HEIGTH_DFT = 820;
 	public final static String APP_NAME = "Titanium";
 	public final static String VERSION = "0.5";
 
+	private Stage primaryStage;
 
 	private List<LocalServer> servers; // Not really useful. New tabs are not included in that list.
 	private List<WSPServer> wspServers;
@@ -42,9 +39,9 @@ public class App extends Application {
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		currentInstance = this;
+		this.primaryStage = primaryStage;
 		initModel();
-		
-		primaryStage.setTitle(APP_NAME + " - " + VERSION);
+		setMainWindowsName("");
 		primaryStage.setWidth(WIDTH_DFT);
 		primaryStage.setHeight(HEIGTH_DFT);
 		primaryStage.setResizable(true);
@@ -81,9 +78,16 @@ public class App extends Application {
 		wsp.updateServerList();
 		wspServers = wsp.getAllAvailableServers();
 		refreshTabs();
+		pane.refreshWindowTitle();
+	}
+
+	public void setMainWindowsName(String info) {
+		primaryStage.setTitle(APP_NAME + " - " + VERSION + ((info.isEmpty()) ? "" : " :: " + info));
+		
 	}
 
 	public static App getCurrentInstance() {
 		return currentInstance;
 	}
+	
 }

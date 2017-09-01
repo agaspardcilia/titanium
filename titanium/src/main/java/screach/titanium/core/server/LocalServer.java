@@ -1,10 +1,8 @@
 package screach.titanium.core.server;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import screach.titanium.core.ConnectionFailureException;
 import screach.titanium.core.NotifyEventType;
@@ -29,10 +27,12 @@ public class LocalServer extends Server {
 	private Thread refresherThread;
 	private ServerInformationRefresher refresher;
 
-
+	private ServerException lastServerException;
+	
 	public LocalServer(String name, String address, int port, String password) {
 		super(name, address, port);
 		this.password = password;
+		lastServerException = null;
 	}
 
 	@Override
@@ -69,22 +69,38 @@ public class LocalServer extends Server {
 	@Override
 	public void disconnect() {
 		if (rcon.connected()) {
-			try {
-				rcon.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			try {
-				receiverThread.interrupt();
-				parserThread.interrupt();
-				refresherThread.interrupt();
-			} catch (NullPointerException e) {
-				e.printStackTrace();
-			}
+			disconnect_inter();
+			setChanged();
+			notifyObservers(NotifyEventType.DISCONNECT);
 		}
 	}
+	
+	@Override
+	public void disconnectWithError() {
+		if (rcon.connected()) {
+			disconnect_inter();
+			setChanged();
+			notifyObservers(NotifyEventType.DISCONNECT_ERROR);
+		}
+	}
+	
+	private void disconnect_inter() {
+		try {
+			rcon.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
+		try {
+			receiverThread.interrupt();
+			parserThread.interrupt();
+			refresherThread.interrupt();
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+		}
+		closePool();
+	}
+	
 	@Override
 	public void executeCommand(String command) {
 		System.out.println("executing : " + command);
@@ -96,38 +112,6 @@ public class LocalServer extends Server {
 		}
 	}
 	
-	@Override
-	public void refreshConnectedPlayersList(ArrayList<Player> players) {
-		// Add new players
-		players.forEach(p -> {
-			if (!connectedPlayers.contains(p)) {
-				connectedPlayers.add(p);
-				setChanged();
-			} 
-		});
-
-		// Remove disconnected players
-		connectedPlayers.retainAll(players);
-
-		notifyObservers(NotifyEventType.PLAYER_LIST);
-	}
-
-	@Override
-	public void refreshRecentlyDCPlayers(ArrayList<Player> players) {
-		// TODO make it better
-
-		recentlyDCPlayers.clear();
-		recentlyDCPlayers.addAll(players);
-		setChanged();
-		notifyObservers(NotifyEventType.PLAYER_LIST);
-	}
-
-
-
-
-
-
-
 	public String getPassword() {
 		return password;
 	}
@@ -135,6 +119,16 @@ public class LocalServer extends Server {
 
 	public RconClient getRcon() {
 		return rcon;
+	}
+	
+	public ServerException getLastServerException() {
+		ServerException result = lastServerException;
+		lastServerException = null;
+		return result;
+	}
+	
+	public void setLastServerException(ServerException lastServerException) {
+		this.lastServerException = lastServerException;
 	}
 
 	@Override

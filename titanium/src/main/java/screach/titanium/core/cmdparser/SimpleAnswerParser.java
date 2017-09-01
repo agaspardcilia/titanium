@@ -3,6 +3,7 @@ package screach.titanium.core.cmdparser;
 import java.util.ArrayList;
 
 import screach.titanium.core.server.Server;
+import screach.titanium.core.server.ServerException;
 
 public class SimpleAnswerParser {
 	protected ArrayList<CommandParser> handledCommands;
@@ -14,7 +15,7 @@ public class SimpleAnswerParser {
 		handledCommands = new ArrayList<>();
 	}
 	
-	public void parseAnswer(String answer) {
+	public void parseAnswer(String answer) throws ServerException {
 		for (CommandParser cmdp : handledCommands) {
 			if (cmdp.match(answer)) {
 				cmdp.parseCommand(answer);

@@ -13,6 +13,8 @@ import javafx.scene.image.ImageView;
 
 public class AssetsLoader {
 	private final static String ASSETS_DIRECTORY_PATH = "assets/";
+	private final static int ICON_W = 16;
+	private final static int ICON_H = 16;
 	
 	private static Map<String, Image> assets;
 	
@@ -68,6 +70,10 @@ public class AssetsLoader {
 		result.setFitHeight(h);
 		
 		return result;
+	}
+	
+	public static ImageView getIcon(String filename) {
+		return getAssetView(filename, ICON_W, ICON_H);
 	}
 	
 	

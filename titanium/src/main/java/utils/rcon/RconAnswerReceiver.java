@@ -7,7 +7,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class RconAnswerReceiver implements Runnable {
-
+	public final static String DC_MESSAGE = "disconnected";
+	
 	private Lock lock;
 	private Condition hasAnswer;
 
@@ -38,10 +39,16 @@ public class RconAnswerReceiver implements Runnable {
 
 				} finally {
 					lock.unlock();
-
 				}
-			} catch (IOException e) {
-				System.out.println("Stream corrupted!");
+			} catch (IOException | NegativeArraySizeException e) {
+				receivedAnswers.add(DC_MESSAGE + " : " + e.getMessage());
+				lock.lock();
+				try {
+					hasAnswer.signal();
+
+				} finally {
+					lock.unlock();
+				}
 				e.printStackTrace();
 				break;
 			}
@@ -59,8 +66,8 @@ public class RconAnswerReceiver implements Runnable {
 			result = receivedAnswers.remove(0);
 		} finally {
 			lock.unlock();
-
 		}
+		
 		return result;
 	}
 }
