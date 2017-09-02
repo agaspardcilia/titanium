@@ -161,7 +161,6 @@ public class WSPServer extends Server {
 	private void disconnect_intern() {
 		isConnected = false;
 		refresherThread.interrupt();
-		closePool();
 	}
 
 	@Override

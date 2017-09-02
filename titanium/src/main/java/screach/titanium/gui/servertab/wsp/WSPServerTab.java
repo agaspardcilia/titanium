@@ -33,7 +33,7 @@ public class WSPServerTab extends ServerTab {
 		result.setHgap(5);
 		
 		result.addRow(0, AssetsLoader.getIcon("wsp_icon.png"), getConnectionStatusIcon(),
-				new Label(wspServer.getWSPServerName() + " : " + wspServer.getName()));
+				new Label(wspServer.getName()));
 		
 		return result;
 	}

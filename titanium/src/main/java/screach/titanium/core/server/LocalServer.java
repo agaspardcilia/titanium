@@ -98,7 +98,6 @@ public class LocalServer extends Server {
 		} catch (NullPointerException e) {
 			e.printStackTrace();
 		}
-		closePool();
 	}
 	
 	@Override

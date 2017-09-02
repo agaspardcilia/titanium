@@ -13,6 +13,7 @@ import screach.titanium.core.server.LocalServer;
 import screach.titanium.core.server.WSPServer;
 import utils.ErrorUtils;
 import utils.webapi.HttpException;
+import utils.webapi.WebApi;
 
 public class Organization {
 	private WebServiceProvider wsp;
@@ -37,7 +38,7 @@ public class Organization {
 	public void editServer(int serverId, LocalServer server) throws JSONException, IOException, HttpException, WebApiException {
 		Map<String, String> args = new HashMap<>();
 		args.put(WebServiceProvider.API_ARG_IDORGA, id+"");
-		args.put(WebServiceProvider.API_ARG_NAME, server.getName());
+		args.put(WebServiceProvider.API_ARG_NAME, WebApi.webEscape(server.getName()));
 		args.put(WebServiceProvider.API_ARG_HOST, server.getAddress());
 		args.put(WebServiceProvider.API_ARG_PORT, server.getPort()+"");
 		args.put(WebServiceProvider.API_ARG_PASSWORD, server.getPassword());
@@ -56,7 +57,7 @@ public class Organization {
 	public void addServer(LocalServer server) throws JSONException, IOException, HttpException, WebApiException {
 		Map<String, String> args = new HashMap<>();
 		args.put(WebServiceProvider.API_ARG_IDORGA, id+"");
-		args.put(WebServiceProvider.API_ARG_NAME, server.getName());
+		args.put(WebServiceProvider.API_ARG_NAME, WebApi.webEscape(server.getName()));
 		args.put(WebServiceProvider.API_ARG_HOST, server.getAddress());
 		args.put(WebServiceProvider.API_ARG_PORT, server.getPort()+"");
 		args.put(WebServiceProvider.API_ARG_PASSWORD, server.getPassword());

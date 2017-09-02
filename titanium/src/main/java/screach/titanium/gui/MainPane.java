@@ -31,6 +31,7 @@ import screach.titanium.gui.dialogs.EditWSPDialog;
 import screach.titanium.gui.org.OrganizationManagerStage;
 import utils.AssetsLoader;
 import utils.ErrorUtils;
+import utils.Pool;
 import utils.ServerListLoader;
 import utils.WapiLoader;
 import utils.webapi.HttpException;
@@ -214,6 +215,8 @@ public class MainPane extends BorderPane {
 		content.disconnectFromAll();
 
 		primaryStage.close();
+		
+		Pool.close();
 		
 		Platform.exit();
 	}

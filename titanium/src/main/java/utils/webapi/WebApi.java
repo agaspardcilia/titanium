@@ -155,7 +155,7 @@ public class WebApi {
 		}
 		
 		
-		return resultStr.toString().replaceAll("'", "%27").replaceAll("\"", "%22"); // Shitty fix
+		return resultStr.toString().replaceAll("'", "%27").replaceAll("\"", "%22").replaceAll("\\^", "%5E"); // Shitty fix
 	}
 
 	private static char toHex(int ch) {

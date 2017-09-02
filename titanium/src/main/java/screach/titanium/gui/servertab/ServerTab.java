@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import javafx.application.Platform;
@@ -30,6 +32,7 @@ import screach.titanium.core.server.Server;
 import screach.titanium.gui.ServerTabsPane;
 import utils.AssetsLoader;
 import utils.ErrorUtils;
+import utils.Pool;
 
 public abstract class ServerTab extends Tab implements Observer {
 	public final static int CONNECTION_ATTEMPS = 5;
@@ -51,28 +54,33 @@ public abstract class ServerTab extends Tab implements Observer {
 	private ServerInfoPane serverInfo;
 	private Controls controlsPane;
 
-
-
+	private Button connectButton; 
+	
 	public ServerTab(Server server, ServerTabsPane tabs) {
 		super();
 		this.server = server;
 		this.tabs = tabs;
-		
+
 		this.setClosable(false);
 
 		server.addObserver(this);
-		
+
 		connectedPlayersList = FXCollections.observableArrayList();
-		connectedPlayersList.addAll(server.getConnectedPlayers().stream().map(p -> new PlayerView(p, server, tabs.getApplication())).collect(Collectors.toList()));
+		connectedPlayersList.addAll(server.getConnectedPlayers().stream()
+				.map(p -> new PlayerView(p, server, tabs.getApplication()))
+				.collect(Collectors.toList()));
 
 		dcPlayersList = FXCollections.observableArrayList();
-		dcPlayersList.addAll(server.getRecentlyDCPlayers().stream().map(p -> new PlayerView(p, server, tabs.getApplication())).collect(Collectors.toList()));
+		dcPlayersList.addAll(server.getRecentlyDCPlayers().stream()
+				.map(p -> new PlayerView(p, server, tabs.getApplication()))
+				.collect(Collectors.toList()));
 
 
 		setupConnectedPane();
 		setupNotConnectedPane();
-		
+
 		this.setContent(notConnectedPane);
+		
 	}
 
 	public void setupConnectedPane() {
@@ -143,19 +151,19 @@ public abstract class ServerTab extends Tab implements Observer {
 		notConnectedPane.setPadding(new Insets(15, 15, 15, 15));
 
 		Label l = new Label("Not connected");
-		Button connect = new Button("Connect", AssetsLoader.getIcon("connect.png"));
+		connectButton = new Button("Connect", AssetsLoader.getIcon("connect.png"));
 		Button edit = new Button("Edit server informations...", AssetsLoader.getIcon("edit.png"));
 
-		connect.setOnAction(this::connectButtonAction);
+		connectButton.setOnAction(this::connectButtonAction);
 		edit.setOnAction(this::editButtonAction);
 
-		notConnectedPane.getChildren().addAll(l, connect, edit);
+		notConnectedPane.getChildren().addAll(l, connectButton, edit);
 	}
 
 	public void switchToDisconnected() {
 		Platform.runLater(() -> {
 			this.setContent(notConnectedPane);
-			
+
 		});
 	}
 
@@ -165,34 +173,47 @@ public abstract class ServerTab extends Tab implements Observer {
 	}
 
 	private void connectButtonAction(Event e) {
-		Exception lastException = null;
 		
-		for (int i = 0; i < CONNECTION_ATTEMPS; i++) {
-			try {
-				connect();
-				break;
-			} catch (Exception e1) {
-				e1.printStackTrace();
-				lastException = e1;
-			} 
-		}
-
-		if (!server.isConnected()) {
-			switchToDisconnected();
-			
-			Alert alert = ErrorUtils.newErrorAlert("Server connection error", "Connection to \"" + server + "\" has failed.", lastException.getClass() + " : " + lastException.getMessage());
-			alert.show();
-		}
+		connectButton.setText("Connection...");
+		connectButton.setDisable(true);
+		
+		Pool.submit(() -> {
+				Exception lastException = null;
+				
+				for (int i = 0; i < CONNECTION_ATTEMPS; i++) {
+					try {
+						connect();
+						break;
+					} catch (Exception e1) {
+						e1.printStackTrace();
+						lastException = e1;
+					} 
+				}
+				
+				if (!server.isConnected()) {
+					switchToDisconnected();
+					
+					Alert alert = ErrorUtils.newErrorAlert("Server connection error", "Connection to \"" + server + "\" has failed.", lastException.getClass() + " : " + lastException.getMessage());
+					alert.show();
+				}
+				
+			Platform.runLater(() -> {
+				connectButton.setText("Connect");
+				connectButton.setDisable(false);
+			});
+		});
 
 	}
 
 	protected abstract void editButtonAction(Event e);
 
-	
-	
+
+
 	public void connect() throws Exception {
 		server.connect();
-		switchToConnected();
+		Platform.runLater(() -> {
+			switchToConnected();
+		});
 	}
 
 	public void disconnect() {
@@ -208,21 +229,21 @@ public abstract class ServerTab extends Tab implements Observer {
 			this.setGraphic(getTitleNodde());
 		});
 	}
-	
+
 	protected Node getTitleNodde() {
 		GridPane result = new GridPane();
-		
+
 		result.setHgap(5);
-		
+
 		result.addRow(0, getConnectionStatusIcon(), new Label(server.getName()));
-		
+
 		return result;
 	}
-	
+
 	protected ImageView getConnectionStatusIcon() {
 		return (server.isConnected()) ? AssetsLoader.getIcon("connected_icon.png"): AssetsLoader.getIcon("not_connected_icon.png");
 	}
-	
+
 	@Override
 	public void update(Observable o, Object arg) {
 
@@ -260,11 +281,11 @@ public abstract class ServerTab extends Tab implements Observer {
 		}
 
 	}
-	
+
 	private void updateVac() {
 		//XXX awful way to do it.
 		List<PlayerView> tmp = new ArrayList<>(connectedPlayersList);
-		
+
 		connectedPlayersList.clear();
 		connectedPlayersList.addAll(tmp);
 	}
@@ -272,9 +293,9 @@ public abstract class ServerTab extends Tab implements Observer {
 
 	private void updateConnected(List<Player> players) {
 		List<PlayerView> toRemove = new ArrayList<PlayerView>();
-		
+
 		// TODO user Player instead of PlayerView for contains().
-		
+
 		connectedPlayersList.forEach(p -> {
 			if (!players.contains(p.getPlayer())) 
 				toRemove.add(p);
@@ -309,7 +330,7 @@ public abstract class ServerTab extends Tab implements Observer {
 	private void updatePing() {
 		serverInfo.refreshPing();
 	}
-	
+
 	public void switchToDisconnectedWithAlert() {
 		switchToDisconnected();
 		Platform.runLater(() -> {

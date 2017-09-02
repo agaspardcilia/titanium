@@ -3,15 +3,13 @@ package screach.titanium.core.server;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import screach.titanium.core.NotifyEventType;
 import screach.titanium.core.Player;
 import utils.PlayerUtils;
+import utils.Pool;
 
 public abstract class Server extends Observable {
-	private final static int POOL_SIZE = 4;
 	private final static int VAC_TRIES = 5;
 	
 	private String name;
@@ -30,8 +28,6 @@ public abstract class Server extends Observable {
 	protected String currentMap;
 	protected String nextMap;
 
-	private ExecutorService pool; 
-	
 	public Server(String name, String address, int port) {
 		this.name = name;
 		this.address = address;
@@ -48,7 +44,6 @@ public abstract class Server extends Observable {
 		connectedPlayers = new ArrayList<>();
 		recentlyDCPlayers = new ArrayList<>();
 		
-		pool = Executors.newFixedThreadPool(POOL_SIZE);
 	}
 	
 	public Server() {
@@ -78,7 +73,7 @@ public abstract class Server extends Observable {
 		players.forEach(p -> {
 			if (!connectedPlayers.contains(p)) {
 				connectedPlayers.add(p);
-				pool.submit(() -> {
+				Pool.submit(() -> {
 					PlayerUtils.updateVACBanStatus(p, VAC_TRIES);
 					setChanged();
 					notifyObservers(NotifyEventType.VAC);
@@ -259,13 +254,5 @@ public abstract class Server extends Observable {
 		log("Error : " + e.getMessage());
 	}
 	
-	public ExecutorService getPool() {
-		return pool;
-	}
-	
-	
-	public void closePool() {
-		pool.shutdown();
-	}
 }
 
