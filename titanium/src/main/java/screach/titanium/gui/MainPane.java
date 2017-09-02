@@ -12,11 +12,15 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.Separator;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.ToolBar;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import screach.titanium.core.server.Server;
@@ -30,6 +34,7 @@ import screach.titanium.gui.dialogs.ConnectToWSPDialog;
 import screach.titanium.gui.dialogs.EditWSPDialog;
 import screach.titanium.gui.org.OrganizationManagerStage;
 import utils.AssetsLoader;
+import utils.ControlAvailabilityManager;
 import utils.ErrorUtils;
 import utils.Pool;
 import utils.ServerListLoader;
@@ -39,6 +44,7 @@ import utils.webapi.HttpException;
 public class MainPane extends BorderPane {
 	private Stage primaryStage;
 	private MenuBar menu;
+	private ToolBar toolBar;
 	private ServerTabsPane content;
 
 	private MenuItem orgManagerItem;
@@ -48,18 +54,28 @@ public class MainPane extends BorderPane {
 
 	private App app;
 
+	private ControlAvailabilityManager cam;
+	
 	public MainPane(Stage primaryStage, App app, WebServiceProvider wsp) {
 		super();
 		this.app = app;
 		this.primaryStage = primaryStage;
 		this.wsp = wsp;
-
+		cam = new ControlAvailabilityManager();
+		
 		setupPane();
 		servers = new ArrayList<>();
 		primaryStage.setOnCloseRequest(this::quitAction);
+		
+		cam.disconnectedWSP();
+		cam.disconnectedServer();
+		
 		Platform.runLater(() -> {
 			initWSP();
 		});
+		
+		
+		
 	}
 	
 	private void initWSP() {
@@ -75,6 +91,7 @@ public class MainPane extends BorderPane {
 					
 					loadUser(ls);
 					wsp.setConnected(true);
+					cam.connectedWSP();
 					orgManagerItem.setDisable(false);
 				}
 			} catch (WebApiException e) {
@@ -104,13 +121,54 @@ public class MainPane extends BorderPane {
 	
 	private void setupPane() {
 		menu = getMenuBar();
-
-		this.setTop(menu);
+		toolBar = getToolBar();
+		
+		BorderPane p = new BorderPane();
+		
+		p.setTop(menu);
+		p.setBottom(toolBar);
+		
+		this.setTop(p);
 
 		content = new ServerTabsPane(this);
 
 		this.setCenter(content);
 
+	}
+	private ToolBar getToolBar() {
+		ToolBar result = new ToolBar();
+		
+		Button add = new Button("", AssetsLoader.getIcon("new_icon.png"));
+		Button remove = new Button("", AssetsLoader.getIcon("delete_icon.png"));
+		
+		add.setTooltip(new Tooltip("Add a server."));
+		remove.setTooltip(new Tooltip("Remove current server."));
+		
+		Button connect = new Button("", AssetsLoader.getIcon("connect.png"));
+		Button disconnect = new Button("", AssetsLoader.getIcon("disconnect.png"));
+		
+		connect.setTooltip(new Tooltip("Connect all."));
+		disconnect.setTooltip(new Tooltip("Disconnect all."));
+		
+		Button orgManager = new Button("", AssetsLoader.getIcon("wsp_icon.png"));
+		
+		orgManager.setTooltip(new Tooltip("Open organization manager."));
+		
+		result.getItems().addAll(add, remove, new Separator());
+		result.getItems().addAll(connect, disconnect, new Separator());
+		result.getItems().addAll(orgManager);
+		
+		add.setOnAction(this::addServerAction);
+		remove.setOnAction(this::removeServerAction);
+		connect.setOnAction(this::connectToAllAction);
+		disconnect.setOnAction(this::disconnectFromAll);
+		orgManager.setOnAction(this::organizationManagerAction);
+		
+		cam.getNotConnectedRequiredButtons().add(remove);
+		cam.getWspConnectionRequiredButtons().add(orgManager);
+		
+		
+		return result;
 	}
 
 	private MenuBar getMenuBar() {
@@ -120,13 +178,15 @@ public class MainPane extends BorderPane {
 
 		return result;
 	}
+	
+	
 
 	private Menu getServerMenu() {
 		Menu result = new Menu("Servers");
 		MenuItem addServerItem = new MenuItem("Add a server...", AssetsLoader.getIcon("new_icon.png"));
 		MenuItem removeCrtServerItem = new MenuItem("Remove current server", AssetsLoader.getIcon("delete_icon.png"));
-		MenuItem connectToAll = new MenuItem("Connect to all servers", AssetsLoader.getIcon("connect.png"));
-		MenuItem disconnectAllItem = new MenuItem("Disconnect from all servers", AssetsLoader.getIcon("disconnect.png"));
+		MenuItem connectToAll = new MenuItem("Connect all", AssetsLoader.getIcon("connect.png"));
+		MenuItem disconnectAllItem = new MenuItem("Disconnect all", AssetsLoader.getIcon("disconnect.png"));
 		MenuItem quitItem = new MenuItem("Quit", AssetsLoader.getIcon("quit_icon.png"));
 
 		
@@ -142,7 +202,10 @@ public class MainPane extends BorderPane {
 		result.getItems().addAll(connectToAll, disconnectAllItem);
 		result.getItems().add(new SeparatorMenuItem());
 		result.getItems().addAll(quitItem);
-
+		
+		cam.getNotConnectedRequiredMenuItems().add(removeCrtServerItem);
+		
+		
 		return result;
 	}
 
@@ -167,11 +230,16 @@ public class MainPane extends BorderPane {
 		connectItem.setOnAction(this::connectToWSPAction);
 		editWSPItem.setOnAction(this::editWSPAction);
 		orgManagerItem.setOnAction(this::organizationManagerAction);
-		
+
 		result.getItems().add(connectItem);
 		result.getItems().add(orgManagerItem);
 		result.getItems().add(editWSPItem);
 
+		cam.getWspConnectionRequiredMenuItems().add(orgManagerItem);
+		
+		cam.getWspNotConnectedRequiredMenuItems().add(connectItem);
+		cam.getWspNotConnectedRequiredMenuItems().add(editWSPItem);
+		
 		return result;
 	}
 
@@ -347,6 +415,10 @@ public class MainPane extends BorderPane {
 			ErrorUtils.newErrorAlert("WSP saving error", "Error while saving Web Service Provider",
 					e1.getClass() + " : " + e1.getMessage()).show();;
 		}
+	}
+	
+	public ControlAvailabilityManager getControlAvailabilityManager() {
+		return cam;
 	}
 
 }

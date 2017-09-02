@@ -18,6 +18,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tab;
 import javafx.scene.image.ImageView;
@@ -55,6 +56,8 @@ public abstract class ServerTab extends Tab implements Observer {
 	private Controls controlsPane;
 
 	private Button connectButton; 
+	private ProgressIndicator piConnect;
+	private Button editButton;
 	
 	public ServerTab(Server server, ServerTabsPane tabs) {
 		super();
@@ -147,17 +150,23 @@ public abstract class ServerTab extends Tab implements Observer {
 	}
 
 	public void setupNotConnectedPane() {
-		notConnectedPane = new VBox(15);
+		GridPane pane = new GridPane();
+		pane.setVgap(15);
+		notConnectedPane = pane;
 		notConnectedPane.setPadding(new Insets(15, 15, 15, 15));
-
+		
 		Label l = new Label("Not connected");
 		connectButton = new Button("Connect", AssetsLoader.getIcon("connect.png"));
-		Button edit = new Button("Edit server informations...", AssetsLoader.getIcon("edit.png"));
+		editButton = new Button("Edit server informations...", AssetsLoader.getIcon("edit.png"));
 
 		connectButton.setOnAction(this::connectButtonAction);
-		edit.setOnAction(this::editButtonAction);
+		editButton.setOnAction(this::editButtonAction);
 
-		notConnectedPane.getChildren().addAll(l, connectButton, edit);
+		piConnect = new ProgressIndicator();
+		piConnect.setVisible(false);
+		pane.addRow(0, connectButton);
+		pane.addRow(1, editButton);
+		pane.addRow(2, piConnect);
 	}
 
 	public void switchToDisconnected() {
@@ -172,10 +181,13 @@ public abstract class ServerTab extends Tab implements Observer {
 		refreshTitle();
 	}
 
-	private void connectButtonAction(Event e) {
+	public void connectButtonAction(Event e) {
 		
 		connectButton.setText("Connection...");
 		connectButton.setDisable(true);
+		piConnect.setVisible(true);
+		editButton.setDisable(true);
+		
 		
 		Pool.submit(() -> {
 				Exception lastException = null;
@@ -200,6 +212,9 @@ public abstract class ServerTab extends Tab implements Observer {
 			Platform.runLater(() -> {
 				connectButton.setText("Connect");
 				connectButton.setDisable(false);
+				piConnect.setVisible(false);
+				editButton.setDisable(false);
+				tabs.refreshButtonAvailability(this);
 			});
 		});
 
@@ -218,6 +233,7 @@ public abstract class ServerTab extends Tab implements Observer {
 
 	public void disconnect() {
 		server.disconnect();
+		tabs.refreshButtonAvailability(this);
 	}
 
 	public Server getServer() {

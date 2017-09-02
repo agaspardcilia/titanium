@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javafx.application.Application;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import screach.titanium.core.server.Server;
@@ -21,6 +19,14 @@ public class ServerTabsPane extends TabPane {
 	public ServerTabsPane(MainPane mainPane) {
 		super();
 		this.mainPane = mainPane;
+		
+		this.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+			if (newSelection instanceof ServerTab) {
+				ServerTab st = (ServerTab) newSelection;
+				
+				refreshButtonAvailability(st);
+			}
+		});
 	}
 
 	public void refreshTabs(List<LocalServer> servers, List<WSPServer> wspServers) {
@@ -89,14 +95,10 @@ public class ServerTabsPane extends TabPane {
 
 	public void connectToAll() {
 		this.getTabs().forEach(tab -> {
-			if (tab instanceof LocalServerTab) {
-				LocalServerTab st = (LocalServerTab) tab;
-
-				try {
-					st.connect();
-				} catch (Exception e) {
-					new Alert(AlertType.ERROR, "Connection to \"" + st.getServer() + "\" has failed (" + e.getMessage() + ")").show();
-					e.printStackTrace();
+			if (tab instanceof ServerTab) {
+				ServerTab st = (ServerTab) tab;
+				if (!st.getServer().isConnected()) {
+					st.connectButtonAction(null);
 				}
 			}
 		});
@@ -122,4 +124,13 @@ public class ServerTabsPane extends TabPane {
 	public void writeServerList() {
 		mainPane.writeServerList();
 	}
+	
+	public void refreshButtonAvailability(ServerTab t) {
+		if (t.getServer().isConnected()) {
+			mainPane.getControlAvailabilityManager().connectedServer();
+		} else {
+			mainPane.getControlAvailabilityManager().disconnectedServer();
+		}
+	}
+	
 }

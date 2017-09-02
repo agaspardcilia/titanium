@@ -20,7 +20,7 @@ public class App extends Application {
 	public final static int WIDTH_DFT = 1280;
 	public final static int HEIGTH_DFT = 820;
 	public final static String APP_NAME = "Titanium";
-	public final static String VERSION = "0.5";
+	public final static String VERSION = "0.7";
 
 	private Stage primaryStage;
 
@@ -50,6 +50,7 @@ public class App extends Application {
 		primaryStage.setScene(s);
 		primaryStage.getIcons().add(AssetsLoader.getAsset("titanium_icon.png"));
 
+		
 		refreshTabs();
 		
 		primaryStage.show();
