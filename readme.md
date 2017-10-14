@@ -6,4 +6,4 @@ You should also take a look at [Titanium web service](https://github.com/Screach
 
 This software is still under development, stay tuned for future updates!
 
-![Titanium](https://imgur.com/6PZVB8u "Titanium")
+[Titanium](https://imgur.com/6PZVB8u)
