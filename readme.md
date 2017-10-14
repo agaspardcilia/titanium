@@ -1,1 +1,9 @@
-Kick/Ban/Broadcast/End match/ Set next map/Change Map/ForceTeamSwitch/Restart Match/ Set max number of players/Set number of Reserved slots
+# Titanium
+
+Titanium is a Java+JavaFX application that let you administrate your [Squad](http://joinsquad.com/) server using RCON and Steam server queries.
+
+You should also take a look at [Titanium web service](https://github.com/ScreachFr/titanium_webService), a rest API used to send RCON commands.
+
+This software is still under development, stay tuned for future updates!
+
+![Titanium](https://imgur.com/6PZVB8u "Titanium")
